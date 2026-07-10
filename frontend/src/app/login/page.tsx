@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SignIn } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,12 +18,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (hasClerk) {
-      router.replace('/sign-in');
-      return;
-    }
+    if (hasClerk) return;
     if (token) router.replace('/');
   }, [hasClerk, token, router]);
+
+  if (hasClerk) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-8">
+        <SignIn />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

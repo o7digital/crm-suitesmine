@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SignUp } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -81,11 +82,6 @@ function RegisterPageContent() {
   }, [legalRegion, t]);
 
   useEffect(() => {
-    if (!hasClerk) return;
-    router.replace('/sign-up');
-  }, [hasClerk, router]);
-
-  useEffect(() => {
     if (!isInvite) return;
     setTenantName(inviteTenantName || tenantName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,6 +94,14 @@ function RegisterPageContent() {
   }, [inviteEmail, inviteName, isInvite]);
 
   const tenantNameDisabled = useMemo(() => isInvite && Boolean(inviteTenantName), [inviteTenantName, isInvite]);
+
+  if (hasClerk) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-8">
+        <SignUp />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
