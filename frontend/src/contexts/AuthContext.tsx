@@ -2,8 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/nextjs';
-import type { Session } from '@supabase/supabase-js';
-import { getSupabaseClient } from '../lib/supabaseClient';
 import { apiBaseForRequests } from '../lib/apiBase';
 
 type User = {
@@ -33,14 +31,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-function generateTenantId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback that remains deterministic per call without running during render
-  return `tenant-${Math.random().toString(36).slice(2)}-${Date.now()}`;
-}
 
 function ClerkSessionSync({
   onSession,
@@ -108,43 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
-  const safeSupabase = useCallback(() => {
-    try {
-      return getSupabaseClient();
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const mustSupabase = useCallback(() => {
-    const client = safeSupabase();
-    if (!client) throw new Error('Supabase configuration is missing');
-    return client;
-  }, [safeSupabase]);
-
-  const syncSession = useCallback((session: Session) => {
-    const metadata = (session.user.user_metadata ?? {}) as Record<string, unknown>;
-    const tenantId =
-      (metadata.tenant_id as string | undefined) ||
-      (metadata.tenantId as string | undefined) ||
-      session.user.id;
-    const tenantName =
-      (metadata.tenant_name as string | undefined) || (metadata.tenantName as string | undefined);
-
-    const mappedUser: User = {
-      id: session.user.id,
-      email: session.user.email || '',
-      name: (metadata.name as string) || (metadata.full_name as string) || session.user.email || 'User',
-      tenantId,
-      tenantName,
-    };
-
-    setToken(session.access_token);
-    setUser(mappedUser);
-    localStorage.setItem('token', session.access_token);
-    localStorage.setItem('user', JSON.stringify(mappedUser));
-  }, []);
-
   const bootstrapTenant = useCallback(async (accessToken: string, opts?: { ignoreErrors?: boolean }) => {
     const apiBase = apiBaseForRequests();
     try {
@@ -182,50 +135,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hasClerk) {
-      setLoading(false);
-      return;
-    }
-    let active = true;
-    (async () => {
-      const supabase = safeSupabase();
-      if (!supabase) {
-        if (active) setLoading(false);
-        return;
-      }
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-      const session = data.session;
-      if (session) {
-        syncSession(session);
-        setLoading(false);
-        // Refresh bootstrap data in the background without blocking the UI.
-        void bootstrapTenant(session.access_token, { ignoreErrors: true });
-        return;
-      }
-      setLoading(false);
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [bootstrapTenant, hasClerk, safeSupabase, syncSession]);
+    setLoading(false);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      if (hasClerk) {
-        if (typeof window !== 'undefined') window.location.href = '/sign-in';
-        return;
-      }
-      const supabase = mustSupabase();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error || !data.session) {
-        throw new Error(error?.message || 'Unable to login');
-      }
-      await bootstrapTenant(data.session.access_token);
-      syncSession(data.session);
+      void email;
+      void password;
+      if (!hasClerk) throw new Error('Clerk configuration is missing');
+      if (typeof window !== 'undefined') window.location.href = '/sign-in';
     },
-    [bootstrapTenant, hasClerk, mustSupabase, syncSession],
+    [hasClerk],
   );
 
   const register = useCallback(
@@ -239,116 +159,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       legalCountry?: string;
       legalContractVersion?: string;
     }) => {
-      if (hasClerk) {
-        if (typeof window !== 'undefined') window.location.href = '/sign-up';
-        return 'confirm';
-      }
-      const tenantId = payload.tenantId || generateTenantId();
-      const supabase = mustSupabase();
-      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
-      const { data, error } = await supabase.auth.signUp({
-        email: payload.email,
-        password: payload.password,
-        options: {
-          data: {
-            name: payload.name,
-            tenant_id: tenantId,
-            tenant_name: payload.tenantName,
-            invite_token: payload.inviteToken || undefined,
-          },
-          emailRedirectTo,
-        },
-      });
-      if (error) {
-        throw new Error(error.message || 'Unable to register');
-      }
-      if (!data.session) {
-        return 'confirm';
-      }
-      await bootstrapTenant(data.session.access_token);
-      try {
-        const apiBase = apiBaseForRequests();
-        await fetch(`${apiBase}/legal/accept`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            accepted: true,
-            tenantId,
-            email: payload.email,
-            contractVersion: payload.legalContractVersion || 'v1-en-2026-05-29',
-            country: payload.legalCountry || undefined,
-            source: 'SIGNUP',
-          }),
-        });
-      } catch {
-        // Legal acceptance should not block account creation if endpoint is temporarily unavailable.
-      }
-      syncSession(data.session);
-      return 'signed-in';
+      void payload;
+      if (!hasClerk) throw new Error('Clerk configuration is missing');
+      if (typeof window !== 'undefined') window.location.href = '/sign-up';
+      return 'confirm' as const;
     },
-    [bootstrapTenant, hasClerk, mustSupabase, syncSession],
+    [hasClerk],
   );
 
   const clearAuthStorage = useCallback(() => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (!supabaseUrl) return;
-      const projectRef = new URL(supabaseUrl).host.split('.')[0];
-      localStorage.removeItem(`sb-${projectRef}-auth-token`);
-    } catch {
-      // ignore malformed URL / storage issues
-    }
   }, []);
 
   const logout = useCallback(async () => {
-    if (hasClerk) {
-      if (typeof window !== 'undefined') window.location.href = '/sign-out';
-      setToken(null);
-      setUser(null);
-      clearAuthStorage();
-      return;
-    }
-    const supabase = safeSupabase();
-    try {
-      await supabase?.auth.signOut();
-    } catch {
-      // ignore logout errors and still clear local session
-    }
+    if (hasClerk && typeof window !== 'undefined') window.location.href = '/sign-out';
     setToken(null);
     setUser(null);
     clearAuthStorage();
-  }, [clearAuthStorage, hasClerk, safeSupabase]);
-
-  useEffect(() => {
-    if (hasClerk) return;
-    const supabase = safeSupabase();
-    if (!supabase) return;
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        syncSession(session);
-        if (event === 'SIGNED_IN') {
-          void bootstrapTenant(session.access_token, { ignoreErrors: true });
-        }
-      } else {
-        setToken(null);
-        setUser(null);
-        clearAuthStorage();
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [bootstrapTenant, clearAuthStorage, hasClerk, safeSupabase, syncSession]);
+  }, [clearAuthStorage, hasClerk]);
 
   const value = useMemo(
     () => ({
