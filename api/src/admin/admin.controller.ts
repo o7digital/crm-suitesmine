@@ -1,0 +1,122 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/jwt-auth.guard';
+import { CurrentUser } from '../common/user.decorator';
+import type { RequestUser } from '../common/user.decorator';
+import { AdminService } from './admin.service';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { CreateUserInviteDto } from './dto/create-user-invite.dto';
+import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+
+@UseGuards(JwtAuthGuard)
+@Controller('admin')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  @Get('context')
+  getContext(@CurrentUser() user: RequestUser) {
+    return this.adminService.getContext(user);
+  }
+
+  @Get('users')
+  listUsers(@CurrentUser() user: RequestUser) {
+    return this.adminService.listUsers(user);
+  }
+
+  @Get('user-invites')
+  listUserInvites(@CurrentUser() user: RequestUser) {
+    return this.adminService.listUserInvites(user);
+  }
+
+  @Post('user-invites')
+  createUserInvite(@Body() dto: CreateUserInviteDto, @CurrentUser() user: RequestUser) {
+    return this.adminService.createUserInvite(dto, user);
+  }
+
+  @Delete('user-invites/:id')
+  revokeUserInvite(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.revokeUserInvite(id, user);
+  }
+
+  @Patch('users/:id')
+  updateUserRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto, @CurrentUser() user: RequestUser) {
+    return this.adminService.updateUserRole(id, dto.role, user);
+  }
+
+  @Get('subscriptions')
+  listSubscriptions(@CurrentUser() user: RequestUser) {
+    return this.adminService.listSubscriptions(user);
+  }
+
+  @Post('subscriptions')
+  createSubscription(@Body() dto: CreateSubscriptionDto, @CurrentUser() user: RequestUser) {
+    return this.adminService.createSubscription(dto, user);
+  }
+
+  @Patch('subscriptions/:id')
+  updateSubscription(@Param('id') id: string, @Body() dto: UpdateSubscriptionDto, @CurrentUser() user: RequestUser) {
+    return this.adminService.updateSubscription(id, dto, user);
+  }
+
+  @Post('subscriptions/:id/suspend')
+  suspendSubscription(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.suspendSubscription(id, user);
+  }
+
+  @Post('subscriptions/:id/activate')
+  activateSubscription(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.activateSubscription(id, user);
+  }
+
+  @Post('subscriptions/:id/cancel')
+  cancelSubscription(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.cancelSubscription(id, user);
+  }
+
+  @Get('subscriptions/:id/user-invites')
+  listSubscriptionUserInvites(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.listSubscriptionUserInvites(id, user);
+  }
+
+  @Delete('subscriptions/:id/user-invites/:inviteId')
+  revokeSubscriptionUserInvite(
+    @Param('id') id: string,
+    @Param('inviteId') inviteId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.adminService.revokeSubscriptionUserInvite(id, inviteId, user);
+  }
+
+  @Post('subscriptions/:id/user-invites')
+  createSubscriptionUserInvite(
+    @Param('id') id: string,
+    @Body() dto: CreateUserInviteDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.adminService.createSubscriptionUserInvite(id, dto, user);
+  }
+
+  @Get('subscriptions/:id/users')
+  listSubscriptionUsers(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.adminService.listSubscriptionUsers(id, user);
+  }
+
+  @Patch('subscriptions/:id/users/:userId')
+  updateSubscriptionUserRole(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateUserRoleDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.adminService.updateSubscriptionUserRole(id, userId, dto.role, user);
+  }
+
+  @Delete('subscriptions/:id/users/:userId')
+  removeSubscriptionUser(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.adminService.removeSubscriptionUser(id, userId, user);
+  }
+}

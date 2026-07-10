@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "frontend/package.json", "use": "@vercel/next" }
+  ],
+  "routes": [
+    { "src": "/clients/([^/]+)", "status": 307, "headers": { "Location": "/clients?clientId=$1" } },
+    { "src": "/(.*)", "dest": "frontend/$1" }
+  ]
+}

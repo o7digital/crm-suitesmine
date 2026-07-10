@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0d1218;
+  --surface: #151d26;
+  --card: #1a2330;
+  --foreground: #f4efe7;
+  --muted: #b0a79c;
+  --accent: #c4a36c;
+  --accent-2: #738173;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: radial-gradient(120% 120% at 10% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+    radial-gradient(90% 90% at 85% 4%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.card {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 95%, transparent),
+    color-mix(in srgb, var(--surface) 96%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--foreground) 7%, transparent);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.btn-primary {
+  background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000));
+  color: #21170c;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 10px 14px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 12px 30px rgba(196, 163, 108, 0.22);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 38px rgba(196, 163, 108, 0.28);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+  box-shadow: none;
+  filter: saturate(0.7);
+}
+
+.btn-primary:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: color-mix(in srgb, var(--surface) 82%, white 6%);
+  color: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--foreground) 9%, transparent);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.nav-link {
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  transition: background 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+
+.nav-link-active {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--accent) 34%, transparent),
+    color-mix(in srgb, var(--foreground) 3%, transparent)
+  );
+  color: color-mix(in srgb, var(--accent) 60%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 14px 34px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.app-header {
+  border-color: color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.app-menu {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background: color-mix(in srgb, var(--surface) 96%, black 4%);
+}
+
+.brand-mark {
+  background: linear-gradient(135deg, #8e6a3c, var(--accent), #e6d6bf);
+  color: #21170c;
+}
+
+:root[data-theme-mode='day'] body {
+  background: radial-gradient(
+      120% 120% at 8% 16%,
+      color-mix(in srgb, var(--accent-2) 22%, white 78%),
+      transparent
+    ),
+    radial-gradient(90% 90% at 82% 8%, color-mix(in srgb, var(--accent) 18%, white 82%), transparent),
+    var(--background);
+}
+
+:root[data-theme-mode='day'] .card {
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  box-shadow: 0 12px 28px rgba(12, 24, 44, 0.12);
+}
+
+:root[data-theme-mode='day'] .app-header {
+  background: color-mix(in srgb, var(--surface) 96%, white 4%);
+  border-color: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+:root[data-theme-mode='day'] .app-menu {
+  background: color-mix(in srgb, var(--surface) 98%, white 2%);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+:root[data-theme-mode='day'] .text-slate-100,
+:root[data-theme-mode='day'] .text-slate-200,
+:root[data-theme-mode='day'] .text-slate-300,
+:root[data-theme-mode='day'] .text-slate-400,
+:root[data-theme-mode='day'] .text-slate-500 {
+  color: color-mix(in srgb, var(--foreground) 88%, #0f172a 12%) !important;
+}

@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.local
+uploads
+/api/.env
+/api/node_modules
+/api/dist
+/api/coverage
+/frontend/.next
+/frontend/node_modules
+/frontend/.env.local
+/frontend/.turbo
+db_data
+.npm
+.vercel

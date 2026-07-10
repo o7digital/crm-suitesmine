@@ -1,0 +1,1168 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import nodemailer from 'nodemailer';
+import { PrismaService } from '../prisma/prisma.service';
+import { RequestUser } from '../common/user.decorator';
+import { InviteStatus, Prisma } from '@prisma/client';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { CreateUserInviteDto } from './dto/create-user-invite.dto';
+import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+
+@Injectable()
+export class AdminService {
+  constructor(private prisma: PrismaService) {}
+  private readonly trialAlertTo = 'osteineur@o7digital.com';
+  private readonly trialAlertCc = 'olivier.steineur@icloud.com';
+  private readonly inviteSchemaPendingMessage =
+    'Invite feature is temporarily unavailable while database migration is pending. Redeploy the API (or run migrations), then retry.';
+
+  private isSchemaUpgradePendingError(err: unknown): boolean {
+    return (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      (err.code === 'P2021' || err.code === 'P2022')
+    );
+  }
+
+  private isWorkspaceAdmin(role: 'OWNER' | 'ADMIN' | 'MEMBER') {
+    return role === 'OWNER' || role === 'ADMIN';
+  }
+
+  private async getSubscriptionWorkspaceContext(tenantId: string) {
+    try {
+      const [ownedSubscription, linkedAsCustomer] = await Promise.all([
+        this.prisma.subscription.findFirst({
+          where: { tenantId },
+          select: { id: true },
+        }),
+        this.prisma.subscription.findFirst({
+          where: { customerTenantId: tenantId },
+          select: { id: true },
+        }),
+      ]);
+
+      const ownsSubscriptions = Boolean(ownedSubscription);
+      const isCustomerTenant = Boolean(linkedAsCustomer);
+      const canManageSubscriptions = ownsSubscriptions;
+
+      return {
+        ownsSubscriptions,
+        isCustomerTenant,
+        canManageSubscriptions,
+      };
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) {
+        throw new BadRequestException(this.inviteSchemaPendingMessage);
+      }
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  private mapSchemaError(err: unknown): ServiceUnavailableException | null {
+    if (this.isSchemaUpgradePendingError(err)) {
+      return new ServiceUnavailableException(
+        'Database schema upgrade pending. Redeploy the API (or run migrations), then retry.',
+      );
+    }
+    return null;
+  }
+
+  private async getUserRole(
+    user: RequestUser,
+  ): Promise<'OWNER' | 'ADMIN' | 'MEMBER'> {
+    let dbUser: { role: 'OWNER' | 'ADMIN' | 'MEMBER' } | null = null;
+    try {
+      dbUser = await this.prisma.user.findFirst({
+        where: { id: user.userId, tenantId: user.tenantId },
+        select: { role: true },
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+    if (!dbUser) throw new NotFoundException('User not found');
+    return dbUser.role;
+  }
+
+  private async ensureAdmin(user: RequestUser) {
+    const role = await this.getUserRole(user);
+    if (!this.isWorkspaceAdmin(role)) {
+      throw new ForbiddenException('Admin access required');
+    }
+    return role;
+  }
+
+  private async ensureSubscriptionManager(user: RequestUser) {
+    await this.ensureAdmin(user);
+    const context = await this.getSubscriptionWorkspaceContext(user.tenantId);
+    if (!context.canManageSubscriptions) {
+      throw new ForbiddenException(
+        'Subscription management is restricted to owner workspaces',
+      );
+    }
+    return context;
+  }
+
+  private async getCustomerSeatLimit(tenantId: string): Promise<number | null> {
+    try {
+      const activeSubscription = await this.prisma.subscription.findFirst({
+        where: { customerTenantId: tenantId, status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        select: { seats: true },
+      });
+      if (!activeSubscription) return null;
+      return Math.max(1, activeSubscription.seats || 1);
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  private async ensureInviteSeatCapacity(tenantId: string) {
+    const seatLimit = await this.getCustomerSeatLimit(tenantId);
+    if (seatLimit === null) return;
+
+    try {
+      const [memberCount, pendingInvites] = await Promise.all([
+        this.prisma.user.count({ where: { tenantId } }),
+        this.prisma.userInvite.count({
+          where: { tenantId, status: 'PENDING' },
+        }),
+      ]);
+      if (memberCount + pendingInvites >= seatLimit) {
+        throw new BadRequestException(
+          `User limit reached (${seatLimit}). Increase subscription users before sending another invite.`,
+        );
+      }
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) {
+        throw new BadRequestException(this.inviteSchemaPendingMessage);
+      }
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  private async createUserInviteForTenant(
+    dto: CreateUserInviteDto,
+    tenantId: string,
+    invitedByUserId: string,
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    if (!email) throw new BadRequestException('Email is required');
+    const name = dto.name?.trim() || null;
+    const role =
+      dto.role === 'ADMIN' || dto.role === 'OWNER' || dto.role === 'MEMBER'
+        ? dto.role
+        : 'MEMBER';
+
+    try {
+      const existingMember = await this.prisma.user.findFirst({
+        where: { tenantId, email },
+        select: { id: true },
+      });
+      if (existingMember) {
+        throw new BadRequestException(
+          'This email is already a workspace member.',
+        );
+      }
+
+      const existingPending = await this.prisma.userInvite.findFirst({
+        where: { tenantId, email, status: 'PENDING' },
+        select: { id: true },
+      });
+
+      if (existingPending) {
+        return this.prisma.userInvite.update({
+          where: { id: existingPending.id },
+          data: {
+            name,
+            role,
+            token: randomUUID(),
+            invitedByUserId,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            token: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      }
+
+      await this.ensureInviteSeatCapacity(tenantId);
+
+      return this.prisma.userInvite.create({
+        data: {
+          tenantId,
+          email,
+          name,
+          role,
+          token: randomUUID(),
+          invitedByUserId,
+          status: 'PENDING',
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          token: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  private async getOwnedSubscription(id: string, ownerTenantId: string) {
+    try {
+      const existing = await this.prisma.subscription.findFirst({
+        where: { id, tenantId: ownerTenantId },
+        select: { id: true, customerTenantId: true, status: true },
+      });
+      if (!existing) throw new NotFoundException('Subscription not found');
+      return existing;
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  private async decorateSubscriptions<
+    T extends {
+      id: string;
+      customerTenantId: string;
+      contactEmail?: string | null;
+      status: 'ACTIVE' | 'PAUSED' | 'CANCELED';
+      createdAt: Date;
+      updatedAt: Date;
+    },
+  >(subscriptions: T[]) {
+    if (subscriptions.length === 0) return [];
+
+    const customerTenantIds = [
+      ...new Set(subscriptions.map((sub) => sub.customerTenantId)),
+    ];
+    const customerTenantIdSet = new Set(customerTenantIds);
+    const contactEmails = [
+      ...new Set(
+        subscriptions
+          .map((sub) => sub.contactEmail?.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ] as string[];
+
+    let userRows: Array<{ tenantId: string; email: string; createdAt: Date }> =
+      [];
+    try {
+      userRows = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { tenantId: { in: customerTenantIds } },
+            ...(contactEmails.length > 0
+              ? [{ email: { in: contactEmails } }]
+              : []),
+          ],
+        },
+        select: {
+          tenantId: true,
+          email: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (!mapped) throw err;
+    }
+
+    let inviteRows: Array<{
+      tenantId: string;
+      status: InviteStatus;
+      acceptedAt: Date | null;
+    }> = [];
+    try {
+      inviteRows = await this.prisma.userInvite.findMany({
+        where: {
+          tenantId: { in: customerTenantIds },
+          status: { in: ['PENDING', 'ACCEPTED'] },
+        },
+        select: {
+          tenantId: true,
+          status: true,
+          acceptedAt: true,
+        },
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (!mapped) throw err;
+    }
+
+    const userMetricsByTenant = new Map<
+      string,
+      { activatedUsersCount: number; activatedAt: Date | null }
+    >();
+    const contactAccountCreatedAtByEmail = new Map<string, Date>();
+
+    for (const row of userRows) {
+      const normalizedEmail = row.email.trim().toLowerCase();
+      if (!contactAccountCreatedAtByEmail.has(normalizedEmail)) {
+        contactAccountCreatedAtByEmail.set(normalizedEmail, row.createdAt);
+      }
+
+      if (!customerTenantIdSet.has(row.tenantId)) continue;
+      const current = userMetricsByTenant.get(row.tenantId);
+      if (!current) {
+        userMetricsByTenant.set(row.tenantId, {
+          activatedUsersCount: 1,
+          activatedAt: row.createdAt,
+        });
+        continue;
+      }
+      current.activatedUsersCount += 1;
+    }
+
+    const inviteMetricsByTenant = new Map<
+      string,
+      {
+        pendingInvitesCount: number;
+        acceptedInvitesCount: number;
+        firstAcceptedAt: Date | null;
+      }
+    >();
+    for (const row of inviteRows) {
+      const current = inviteMetricsByTenant.get(row.tenantId) || {
+        pendingInvitesCount: 0,
+        acceptedInvitesCount: 0,
+        firstAcceptedAt: null,
+      };
+
+      if (row.status === 'PENDING') {
+        current.pendingInvitesCount += 1;
+      }
+      if (row.status === 'ACCEPTED') {
+        current.acceptedInvitesCount += 1;
+        if (
+          row.acceptedAt &&
+          (!current.firstAcceptedAt || row.acceptedAt < current.firstAcceptedAt)
+        ) {
+          current.firstAcceptedAt = row.acceptedAt;
+        }
+      }
+
+      inviteMetricsByTenant.set(row.tenantId, current);
+    }
+
+    return subscriptions.map((sub) => {
+      let activatedUsersCount =
+        userMetricsByTenant.get(sub.customerTenantId)?.activatedUsersCount ?? 0;
+      let activatedAt =
+        userMetricsByTenant.get(sub.customerTenantId)?.activatedAt ?? null;
+      const inviteMetrics = inviteMetricsByTenant.get(sub.customerTenantId);
+      const pendingInvitesCount = inviteMetrics?.pendingInvitesCount ?? 0;
+      const acceptedInvitesCount = inviteMetrics?.acceptedInvitesCount ?? 0;
+      const firstAcceptedAt = inviteMetrics?.firstAcceptedAt ?? null;
+      const contactAccountCreatedAt =
+        (sub.contactEmail &&
+          contactAccountCreatedAtByEmail.get(
+            sub.contactEmail.trim().toLowerCase(),
+          )) ||
+        null;
+
+      if (activatedUsersCount === 0) {
+        activatedUsersCount = Math.max(
+          acceptedInvitesCount,
+          contactAccountCreatedAt ? 1 : 0,
+        );
+        activatedAt = firstAcceptedAt ?? contactAccountCreatedAt ?? null;
+      }
+
+      return {
+        ...sub,
+        activatedUsersCount,
+        activatedAt,
+        pendingInvitesCount,
+        canSuspend: sub.status === 'ACTIVE',
+      };
+    });
+  }
+
+  async listUsers(user: RequestUser) {
+    await this.ensureAdmin(user);
+    return this.prisma.user.findMany({
+      where: { tenantId: user.tenantId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async listUserInvites(user: RequestUser) {
+    await this.ensureAdmin(user);
+    try {
+      return await this.prisma.userInvite.findMany({
+        where: { tenantId: user.tenantId, status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          token: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) return [];
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async createUserInvite(dto: CreateUserInviteDto, user: RequestUser) {
+    await this.ensureAdmin(user);
+    return this.createUserInviteForTenant(dto, user.tenantId, user.userId);
+  }
+
+  async revokeUserInvite(id: string, user: RequestUser) {
+    await this.ensureAdmin(user);
+    try {
+      const existing = await this.prisma.userInvite.findFirst({
+        where: { id, tenantId: user.tenantId, status: 'PENDING' },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException('Invite not found');
+
+      return this.prisma.userInvite.update({
+        where: { id: existing.id },
+        data: { status: 'REVOKED' },
+        select: { id: true, status: true, updatedAt: true },
+      });
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) {
+        throw new BadRequestException(this.inviteSchemaPendingMessage);
+      }
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async updateUserRole(
+    userId: string,
+    role: 'OWNER' | 'ADMIN' | 'MEMBER',
+    user: RequestUser,
+  ) {
+    await this.ensureAdmin(user);
+
+    const target = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId: user.tenantId },
+      select: { id: true, role: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+
+    // Avoid locking out the tenant owner by accident.
+    if (target.role === 'OWNER' && role !== 'OWNER') {
+      const owners = await this.prisma.user.count({
+        where: { tenantId: user.tenantId, role: 'OWNER' },
+      });
+      if (owners <= 1) {
+        throw new ForbiddenException('Cannot remove the last OWNER');
+      }
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async getContext(user: RequestUser) {
+    const role = await this.getUserRole(user);
+    const context = await this.getSubscriptionWorkspaceContext(user.tenantId);
+    const seatLimit = await this.getCustomerSeatLimit(user.tenantId);
+    const currentUsersCount = await this.prisma.user.count({
+      where: { tenantId: user.tenantId },
+    });
+    let pendingInvitesCount = 0;
+    try {
+      pendingInvitesCount = await this.prisma.userInvite.count({
+        where: { tenantId: user.tenantId, status: 'PENDING' },
+      });
+    } catch (err) {
+      // Keep /admin/context resilient if user-invites schema isn't deployed yet.
+      if (!this.isSchemaUpgradePendingError(err)) {
+        const mapped = this.mapSchemaError(err);
+        if (mapped) throw mapped;
+        throw err;
+      }
+      pendingInvitesCount = 0;
+    }
+    const isUnlimitedWorkspace = context.ownsSubscriptions && !context.isCustomerTenant;
+    return {
+      role,
+      isAdmin: this.isWorkspaceAdmin(role),
+      isCustomerWorkspace:
+        context.isCustomerTenant && !context.ownsSubscriptions,
+      canManageSubscriptions: context.canManageSubscriptions,
+      ownsSubscriptions: context.ownsSubscriptions,
+      isCustomerTenant: context.isCustomerTenant,
+      seatLimit,
+      currentUsersCount,
+      pendingInvitesCount,
+      isUnlimitedWorkspace,
+    };
+  }
+
+  async listSubscriptions(user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+    try {
+      const subscriptions = await this.prisma.subscription.findMany({
+        where: { tenantId: user.tenantId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          customerName: true,
+          customerCountry: true,
+          customerAddress: true,
+          customerTenantId: true,
+          contactFirstName: true,
+          contactLastName: true,
+          contactEmail: true,
+          plan: true,
+          seats: true,
+          trialEndsAt: true,
+          trialAlertSentAt: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      await this.sendTrialExpiredAlerts(user.tenantId);
+      return this.decorateSubscriptions(subscriptions);
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async listSubscriptionUserInvites(id: string, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+    try {
+      return await this.prisma.userInvite.findMany({
+        where: { tenantId: subscription.customerTenantId, status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          token: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) return [];
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async revokeSubscriptionUserInvite(
+    id: string,
+    inviteId: string,
+    user: RequestUser,
+  ) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+    try {
+      const existing = await this.prisma.userInvite.findFirst({
+        where: {
+          id: inviteId,
+          tenantId: subscription.customerTenantId,
+          status: 'PENDING',
+        },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException('Invite not found');
+
+      return this.prisma.userInvite.update({
+        where: { id: existing.id },
+        data: { status: 'REVOKED' },
+        select: { id: true, status: true, updatedAt: true },
+      });
+    } catch (err) {
+      if (this.isSchemaUpgradePendingError(err)) {
+        throw new BadRequestException(this.inviteSchemaPendingMessage);
+      }
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async listSubscriptionUsers(id: string, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+    try {
+      return this.prisma.user.findMany({
+        where: { tenantId: subscription.customerTenantId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async updateSubscriptionUserRole(
+    id: string,
+    userId: string,
+    role: 'OWNER' | 'ADMIN' | 'MEMBER',
+    user: RequestUser,
+  ) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+
+    const target = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId: subscription.customerTenantId },
+      select: { id: true, role: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+
+    if (target.role === 'OWNER') {
+      throw new ForbiddenException(
+        'Cannot change the OWNER role from subscription management',
+      );
+    }
+
+    const nextRole = role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: nextRole },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async removeSubscriptionUser(id: string, userId: string, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+
+    const target = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId: subscription.customerTenantId },
+      select: { id: true, role: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+    if (target.role === 'OWNER') {
+      throw new ForbiddenException(
+        'Cannot remove the OWNER from subscription management',
+      );
+    }
+
+    try {
+      await this.prisma.user.delete({ where: { id: target.id } });
+      return { id: target.id, removed: true };
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async createSubscriptionUserInvite(
+    id: string,
+    dto: CreateUserInviteDto,
+    user: RequestUser,
+  ) {
+    await this.ensureSubscriptionManager(user);
+    const subscription = await this.getOwnedSubscription(id, user.tenantId);
+    if (subscription.status !== 'ACTIVE') {
+      throw new BadRequestException(
+        'Cannot invite users to an inactive subscription',
+      );
+    }
+    return this.createUserInviteForTenant(
+      dto,
+      subscription.customerTenantId,
+      user.userId,
+    );
+  }
+
+  async createSubscription(dto: CreateSubscriptionDto, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+    const trimmed = dto.customerName.trim();
+    if (!trimmed) throw new BadRequestException('Customer name is required');
+
+    const customerTenantId = randomUUID();
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const normalize = (value: string | null | undefined) => {
+          if (value === null) return null;
+          if (value === undefined) return undefined;
+          const v = value.trim();
+          return v ? v : null;
+        };
+
+        const plan =
+          dto.plan === 'TRIAL' ||
+          dto.plan === 'PULSE_BASIC' ||
+          dto.plan === 'PULSE_STANDARD' ||
+          dto.plan === 'PULSE_ADVANCED' ||
+          dto.plan === 'PULSE_ADVANCED_PLUS' ||
+          dto.plan === 'PULSE_TEAM'
+            ? dto.plan
+            : 'TRIAL';
+
+        const deriveSeats = () => {
+          if (typeof dto.seats === 'number') {
+            return Math.min(30, Math.max(1, dto.seats));
+          }
+          switch (plan) {
+            case 'PULSE_BASIC':
+              return 1;
+            case 'PULSE_STANDARD':
+              return 3;
+            case 'PULSE_ADVANCED':
+              return 5;
+            case 'PULSE_ADVANCED_PLUS':
+              return 10;
+            case 'PULSE_TEAM':
+              return 20;
+            case 'TRIAL':
+            default:
+              return 1;
+          }
+        };
+
+        const seats = deriveSeats();
+        const trialEndsAt =
+          plan === 'TRIAL'
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            : null;
+
+        // Provision the tenant so it exists before the customer signs up.
+        await tx.tenant.upsert({
+          where: { id: customerTenantId },
+          update: {
+            name: trimmed,
+            crmMode: dto.crmMode ?? undefined,
+            industry: normalize(dto.industry),
+          },
+          create: {
+            id: customerTenantId,
+            name: trimmed,
+            crmMode: dto.crmMode ?? undefined,
+            industry: normalize(dto.industry),
+          },
+        });
+
+        const created = await tx.subscription.create({
+          data: {
+            tenantId: user.tenantId,
+            customerTenantId,
+            customerName: trimmed,
+            customerCountry: normalize(dto.customerCountry),
+            customerAddress: normalize(dto.customerAddress),
+            contactFirstName: normalize(dto.contactFirstName),
+            contactLastName: normalize(dto.contactLastName),
+            contactEmail: normalize(dto.contactEmail),
+            plan,
+            seats,
+            trialEndsAt,
+          },
+          select: {
+            id: true,
+            customerName: true,
+            customerCountry: true,
+            customerAddress: true,
+            customerTenantId: true,
+            contactFirstName: true,
+            contactLastName: true,
+            contactEmail: true,
+            plan: true,
+            seats: true,
+            trialEndsAt: true,
+            trialAlertSentAt: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+        const [decorated] = await this.decorateSubscriptions([created]);
+        return decorated;
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async updateSubscription(
+    id: string,
+    dto: UpdateSubscriptionDto,
+    user: RequestUser,
+  ) {
+    await this.ensureSubscriptionManager(user);
+
+    const hasChanges =
+      dto.customerName !== undefined ||
+      dto.customerCountry !== undefined ||
+      dto.customerAddress !== undefined ||
+      dto.contactFirstName !== undefined ||
+      dto.contactLastName !== undefined ||
+      dto.contactEmail !== undefined ||
+      dto.seats !== undefined ||
+      dto.trialEndsAt !== undefined;
+    if (!hasChanges) throw new BadRequestException('No fields provided');
+
+    const normalize = (value: string | null | undefined) => {
+      if (value === null) return null;
+      if (value === undefined) return undefined;
+      const v = value.trim();
+      return v ? v : null;
+    };
+
+    const trimmedCustomerName = dto.customerName?.trim();
+    if (dto.customerName !== undefined && !trimmedCustomerName) {
+      throw new BadRequestException('Customer name is required');
+    }
+    const parseTrialEndDate = (value: string) => {
+      const trimmed = value.trim();
+      const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      const localMatch = trimmed.match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/);
+      const parts = isoMatch
+        ? { year: Number(isoMatch[1]), month: Number(isoMatch[2]), day: Number(isoMatch[3]) }
+        : localMatch
+          ? { year: Number(localMatch[3]), month: Number(localMatch[2]), day: Number(localMatch[1]) }
+          : null;
+
+      if (!parts || parts.month < 1 || parts.month > 12 || parts.day < 1 || parts.day > 31) {
+        return null;
+      }
+
+      const parsed = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 23, 59, 59, 999));
+      if (
+        parsed.getUTCFullYear() !== parts.year ||
+        parsed.getUTCMonth() !== parts.month - 1 ||
+        parsed.getUTCDate() !== parts.day
+      ) {
+        return null;
+      }
+      return parsed;
+    };
+
+    let trialEndsAt: Date | null | undefined;
+    if (dto.trialEndsAt !== undefined) {
+      if (dto.trialEndsAt === null || dto.trialEndsAt.trim() === '') {
+        trialEndsAt = null;
+      } else {
+        trialEndsAt = parseTrialEndDate(dto.trialEndsAt);
+        if (!trialEndsAt) {
+          throw new BadRequestException('Invalid trial end date');
+        }
+      }
+    }
+
+    try {
+      const existing = await this.prisma.subscription.findFirst({
+        where: { id, tenantId: user.tenantId },
+        select: { id: true, customerTenantId: true },
+      });
+      if (!existing) throw new NotFoundException('Subscription not found');
+
+      return await this.prisma.$transaction(async (tx) => {
+        if (trimmedCustomerName) {
+          await tx.tenant.updateMany({
+            where: { id: existing.customerTenantId },
+            data: { name: trimmedCustomerName },
+          });
+        }
+
+        const updated = await tx.subscription.update({
+          where: { id: existing.id },
+          data: {
+            customerName: trimmedCustomerName || undefined,
+            customerCountry: normalize(dto.customerCountry),
+            customerAddress: normalize(dto.customerAddress),
+            contactFirstName: normalize(dto.contactFirstName),
+            contactLastName: normalize(dto.contactLastName),
+            contactEmail: normalize(dto.contactEmail),
+            seats:
+              typeof dto.seats === 'number'
+                ? Math.min(30, Math.max(1, dto.seats))
+                : undefined,
+            trialEndsAt,
+            trialAlertSentAt: trialEndsAt !== undefined ? null : undefined,
+          },
+          select: {
+            id: true,
+            customerName: true,
+            customerCountry: true,
+            customerAddress: true,
+            customerTenantId: true,
+            contactFirstName: true,
+            contactLastName: true,
+            contactEmail: true,
+            plan: true,
+            seats: true,
+            trialEndsAt: true,
+            trialAlertSentAt: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+        const [decorated] = await this.decorateSubscriptions([updated]);
+        return decorated;
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async suspendSubscription(id: string, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+
+    try {
+      const existing = await this.getOwnedSubscription(id, user.tenantId);
+      if (existing.status === 'PAUSED') {
+        throw new BadRequestException('Subscription is already suspended');
+      }
+      if (existing.status === 'CANCELED') {
+        throw new BadRequestException(
+          'Canceled subscriptions cannot be suspended',
+        );
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
+        const suspended = await tx.subscription.update({
+          where: { id: existing.id },
+          data: { status: 'PAUSED' },
+          select: {
+            id: true,
+            customerName: true,
+            customerCountry: true,
+            customerAddress: true,
+            customerTenantId: true,
+            contactFirstName: true,
+            contactLastName: true,
+            contactEmail: true,
+            plan: true,
+            seats: true,
+            trialEndsAt: true,
+            trialAlertSentAt: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        const [decorated] = await this.decorateSubscriptions([suspended]);
+        return decorated;
+      });
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async activateSubscription(id: string, user: RequestUser) {
+    await this.ensureSubscriptionManager(user);
+
+    try {
+      const existing = await this.getOwnedSubscription(id, user.tenantId);
+      if (existing.status === 'ACTIVE') {
+        throw new BadRequestException('Subscription is already active');
+      }
+      if (existing.status === 'CANCELED') {
+        throw new BadRequestException(
+          'Canceled subscriptions cannot be reactivated',
+        );
+      }
+
+      const activated = await this.prisma.subscription.update({
+        where: { id: existing.id },
+        data: { status: 'ACTIVE' },
+        select: {
+          id: true,
+          customerName: true,
+          customerCountry: true,
+          customerAddress: true,
+          customerTenantId: true,
+          contactFirstName: true,
+          contactLastName: true,
+          contactEmail: true,
+          plan: true,
+          seats: true,
+          trialEndsAt: true,
+          trialAlertSentAt: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      const [decorated] = await this.decorateSubscriptions([activated]);
+      return decorated;
+    } catch (err) {
+      const mapped = this.mapSchemaError(err);
+      if (mapped) throw mapped;
+      throw err;
+    }
+  }
+
+  async cancelSubscription(id: string, user: RequestUser) {
+    return this.suspendSubscription(id, user);
+  }
+
+  private async sendTrialExpiredAlerts(ownerTenantId: string) {
+    const overdue = await this.prisma.subscription.findMany({
+      where: {
+        tenantId: ownerTenantId,
+        plan: 'TRIAL',
+        status: 'ACTIVE',
+        trialEndsAt: { lt: new Date() },
+        trialAlertSentAt: null,
+      },
+      select: {
+        id: true,
+        customerName: true,
+        customerTenantId: true,
+        contactEmail: true,
+        trialEndsAt: true,
+        createdAt: true,
+      },
+      orderBy: { trialEndsAt: 'asc' },
+      take: 20,
+    });
+    if (overdue.length === 0) return;
+
+    const host = (process.env.SMTP_HOST || '').trim();
+    const username = (process.env.SMTP_USER || '').trim();
+    const password = process.env.SMTP_PASS || '';
+    const fromEmail = (
+      process.env.SMTP_FROM_EMAIL ||
+      process.env.MAIL_FROM ||
+      ''
+    ).trim();
+    const fromName = (process.env.SMTP_FROM_NAME || 'o7 PulseCRM').trim();
+    const port = Number(process.env.SMTP_PORT || 587);
+    const secure =
+      String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' ||
+      port === 465;
+
+    if (!host || !username || !password || !fromEmail) {
+      console.warn('[trial-alert] skipped: SMTP env is incomplete');
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port: Number.isFinite(port) ? port : 587,
+      secure,
+      auth: { user: username, pass: password },
+    });
+
+    for (const sub of overdue) {
+      const ended = sub.trialEndsAt
+        ? sub.trialEndsAt.toISOString().slice(0, 10)
+        : 'unknown';
+      const subject = `Trial depasse 30 jours - ${sub.customerName}`;
+      const text = [
+        `Un client a depasse sa periode d'essai de 30 jours.`,
+        '',
+        `Client: ${sub.customerName}`,
+        `Tenant client: ${sub.customerTenantId}`,
+        `Email contact: ${sub.contactEmail || 'n/a'}`,
+        `Fin trial: ${ended}`,
+        `Subscription ID: ${sub.id}`,
+        `Cree le: ${sub.createdAt.toISOString().slice(0, 10)}`,
+      ].join('\n');
+
+      try {
+        await transporter.sendMail({
+          from: fromName ? { name: fromName, address: fromEmail } : fromEmail,
+          to: this.trialAlertTo,
+          cc: this.trialAlertCc,
+          subject,
+          text,
+        });
+
+        await this.prisma.subscription.update({
+          where: { id: sub.id },
+          data: { trialAlertSentAt: new Date() },
+        });
+      } catch (err) {
+        console.error(
+          '[trial-alert] send failed',
+          sub.id,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+  }
+}

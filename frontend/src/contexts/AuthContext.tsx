@@ -1,0 +1,461 @@
+'use client';
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/nextjs';
+import type { Session } from '@supabase/supabase-js';
+import { getSupabaseClient } from '../lib/supabaseClient';
+import { apiBaseForRequests } from '../lib/apiBase';
+
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  tenantId: string;
+  tenantName?: string;
+};
+
+type AuthContextValue = {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (payload: {
+    tenantId?: string;
+    tenantName: string;
+    name: string;
+    email: string;
+    password: string;
+    inviteToken?: string;
+    legalCountry?: string;
+    legalContractVersion?: string;
+  }) => Promise<'signed-in' | 'confirm'>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function generateTenantId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback that remains deterministic per call without running during render
+  return `tenant-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+}
+
+function ClerkSessionSync({
+  onSession,
+  onSignedOut,
+}: {
+  onSession: (payload: { token: string; user: User }) => void;
+  onSignedOut: () => void;
+}) {
+  const clerkAuth = useClerkAuth();
+  const clerkUser = useClerkUser();
+
+  useEffect(() => {
+    if (!clerkAuth.isLoaded || !clerkUser.isLoaded) return;
+    if (!clerkAuth.userId || !clerkUser.user) {
+      onSignedOut();
+      return;
+    }
+
+    const metadata = (clerkUser.user.publicMetadata ?? {}) as Record<string, unknown>;
+    const tenantId =
+      (metadata.tenant_id as string | undefined) ||
+      (metadata.tenantId as string | undefined) ||
+      clerkAuth.userId;
+    const tenantName =
+      (metadata.tenant_name as string | undefined) || (metadata.tenantName as string | undefined);
+
+    const mappedUser: User = {
+      id: clerkAuth.userId,
+      email: clerkUser.user.primaryEmailAddress?.emailAddress || '',
+      name: clerkUser.user.fullName || clerkUser.user.firstName || clerkUser.user.username || 'User',
+      tenantId,
+      tenantName,
+    };
+
+    void clerkAuth.getToken().then((jwt) => {
+      if (!jwt) return onSignedOut();
+      const hasTenantMetadata = Boolean(
+        metadata.tenant_id ||
+          metadata.tenantId ||
+          metadata.tenant_name ||
+          metadata.tenantName,
+      );
+      if (!hasTenantMetadata) {
+        void fetch('/api/clerk/sync-metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId,
+            tenantName: tenantName || undefined,
+          }),
+        }).catch(() => {
+          // Metadata sync is best-effort and should not block app session.
+        });
+      }
+      onSession({ token: jwt, user: mappedUser });
+    });
+  }, [clerkAuth, clerkUser, onSession, onSignedOut]);
+
+  return null;
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+  const safeSupabase = useCallback(() => {
+    try {
+      return getSupabaseClient();
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const mustSupabase = useCallback(() => {
+    const client = safeSupabase();
+    if (!client) throw new Error('Supabase configuration is missing');
+    return client;
+  }, [safeSupabase]);
+
+  const syncSession = useCallback((session: Session) => {
+    const metadata = (session.user.user_metadata ?? {}) as Record<string, unknown>;
+    const tenantId =
+      (metadata.tenant_id as string | undefined) ||
+      (metadata.tenantId as string | undefined) ||
+      session.user.id;
+    const tenantName =
+      (metadata.tenant_name as string | undefined) || (metadata.tenantName as string | undefined);
+
+    const mappedUser: User = {
+      id: session.user.id,
+      email: session.user.email || '',
+      name: (metadata.name as string) || (metadata.full_name as string) || session.user.email || 'User',
+      tenantId,
+      tenantName,
+    };
+
+    setToken(session.access_token);
+    setUser(mappedUser);
+    localStorage.setItem('token', session.access_token);
+    localStorage.setItem('user', JSON.stringify(mappedUser));
+  }, []);
+
+  const bootstrapTenant = useCallback(async (accessToken: string, opts?: { ignoreErrors?: boolean }) => {
+    const apiBase = apiBaseForRequests();
+    try {
+      const res = await fetch(`${apiBase}/bootstrap`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (res.ok) return;
+      if (opts?.ignoreErrors) return;
+
+      let extractedMessage = '';
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const payload = (await res.json()) as { message?: string | string[]; error?: string };
+          if (typeof payload.message === 'string' && payload.message.trim()) extractedMessage = payload.message.trim();
+          if (Array.isArray(payload.message) && payload.message.length > 0) {
+            const joined = payload.message.filter((x) => typeof x === 'string').join('; ');
+            if (joined) extractedMessage = joined;
+          }
+          if (!extractedMessage && typeof payload.error === 'string' && payload.error.trim()) {
+            extractedMessage = payload.error.trim();
+          }
+        } catch {
+          // Fallback below if payload parsing fails.
+        }
+      }
+      throw new Error(extractedMessage || 'Unable to bootstrap workspace');
+    } catch (err) {
+      if (opts?.ignoreErrors) return;
+      throw err instanceof Error ? err : new Error('Unable to bootstrap workspace');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasClerk) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    (async () => {
+      const supabase = safeSupabase();
+      if (!supabase) {
+        if (active) setLoading(false);
+        return;
+      }
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      const session = data.session;
+      if (session) {
+        syncSession(session);
+        setLoading(false);
+        // Refresh bootstrap data in the background without blocking the UI.
+        void bootstrapTenant(session.access_token, { ignoreErrors: true });
+        return;
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [bootstrapTenant, hasClerk, safeSupabase, syncSession]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      if (hasClerk) {
+        if (typeof window !== 'undefined') window.location.href = '/sign-in';
+        return;
+      }
+      const supabase = mustSupabase();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.session) {
+        throw new Error(error?.message || 'Unable to login');
+      }
+      await bootstrapTenant(data.session.access_token);
+      syncSession(data.session);
+    },
+    [bootstrapTenant, hasClerk, mustSupabase, syncSession],
+  );
+
+  const register = useCallback(
+    async (payload: {
+      tenantId?: string;
+      tenantName: string;
+      name: string;
+      email: string;
+      password: string;
+      inviteToken?: string;
+      legalCountry?: string;
+      legalContractVersion?: string;
+    }) => {
+      if (hasClerk) {
+        if (typeof window !== 'undefined') window.location.href = '/sign-up';
+        return 'confirm';
+      }
+      const tenantId = payload.tenantId || generateTenantId();
+      const supabase = mustSupabase();
+      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
+      const { data, error } = await supabase.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: {
+            name: payload.name,
+            tenant_id: tenantId,
+            tenant_name: payload.tenantName,
+            invite_token: payload.inviteToken || undefined,
+          },
+          emailRedirectTo,
+        },
+      });
+      if (error) {
+        throw new Error(error.message || 'Unable to register');
+      }
+      if (!data.session) {
+        return 'confirm';
+      }
+      await bootstrapTenant(data.session.access_token);
+      try {
+        const apiBase = apiBaseForRequests();
+        await fetch(`${apiBase}/legal/accept`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accepted: true,
+            tenantId,
+            email: payload.email,
+            contractVersion: payload.legalContractVersion || 'v1-en-2026-05-29',
+            country: payload.legalCountry || undefined,
+            source: 'SIGNUP',
+          }),
+        });
+      } catch {
+        // Legal acceptance should not block account creation if endpoint is temporarily unavailable.
+      }
+      syncSession(data.session);
+      return 'signed-in';
+    },
+    [bootstrapTenant, hasClerk, mustSupabase, syncSession],
+  );
+
+  const clearAuthStorage = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (!supabaseUrl) return;
+      const projectRef = new URL(supabaseUrl).host.split('.')[0];
+      localStorage.removeItem(`sb-${projectRef}-auth-token`);
+    } catch {
+      // ignore malformed URL / storage issues
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    if (hasClerk) {
+      if (typeof window !== 'undefined') window.location.href = '/sign-out';
+      setToken(null);
+      setUser(null);
+      clearAuthStorage();
+      return;
+    }
+    const supabase = safeSupabase();
+    try {
+      await supabase?.auth.signOut();
+    } catch {
+      // ignore logout errors and still clear local session
+    }
+    setToken(null);
+    setUser(null);
+    clearAuthStorage();
+  }, [clearAuthStorage, hasClerk, safeSupabase]);
+
+  useEffect(() => {
+    if (hasClerk) return;
+    const supabase = safeSupabase();
+    if (!supabase) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        syncSession(session);
+        if (event === 'SIGNED_IN') {
+          void bootstrapTenant(session.access_token, { ignoreErrors: true });
+        }
+      } else {
+        setToken(null);
+        setUser(null);
+        clearAuthStorage();
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [bootstrapTenant, clearAuthStorage, hasClerk, safeSupabase, syncSession]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      login,
+      register,
+      logout,
+    }),
+    [loading, login, logout, register, token, user],
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
+      {hasClerk ? (
+        <ClerkSessionSync
+          onSession={({ token: nextToken, user: nextUser }) => {
+            setToken(nextToken);
+            setUser(nextUser);
+            localStorage.setItem('token', nextToken);
+            localStorage.setItem('user', JSON.stringify(nextUser));
+            void bootstrapTenant(nextToken, { ignoreErrors: true });
+          }}
+          onSignedOut={() => {
+            setToken(null);
+            setUser(null);
+            clearAuthStorage();
+          }}
+        />
+      ) : null}
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}
+
+export function useApi(token: string | null) {
+  return useMemo(() => {
+    const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    return async <T = unknown>(path: string, init?: RequestInit): Promise<T> => {
+      const requestUrl = `${apiBaseForRequests()}${path}`;
+      const headers: Record<string, string> = { ...authHeader };
+      if (!(init?.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      Object.assign(headers, init?.headers);
+
+      // Avoid stale metrics when proxies/browsers cache API responses.
+      const cache = init?.cache ?? 'no-store';
+      const res = await fetch(requestUrl, {
+        ...init,
+        headers,
+        cache,
+      });
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        let message = '';
+
+        const extractMessage = (payload: unknown): string => {
+          if (!payload) return '';
+          if (typeof payload === 'string') return payload;
+          if (typeof payload === 'object') {
+            const obj = payload as Record<string, unknown>;
+            const m = obj.message;
+            if (typeof m === 'string') return m;
+            if (Array.isArray(m)) {
+              const parts = m.filter((x) => typeof x === 'string') as string[];
+              if (parts.length) return parts.join('; ');
+            }
+            if (typeof obj.error === 'string') return obj.error;
+          }
+          try {
+            return JSON.stringify(payload);
+          } catch {
+            return '';
+          }
+        };
+
+        try {
+          if (contentType.includes('application/json')) {
+            message = extractMessage(await res.json());
+          } else {
+            const text = await res.text();
+            message = text;
+            try {
+              message = extractMessage(JSON.parse(text));
+            } catch {
+              // keep raw text
+            }
+          }
+        } catch {
+          // ignore parsing errors and fall through
+        }
+
+        throw new Error(`${message || `Request failed (${res.status})`} [${res.status}] @ ${requestUrl}`);
+      }
+      const ct = res.headers.get('content-type');
+      if (ct && ct.includes('text/csv')) {
+        return (await res.text()) as T;
+      }
+      return (await res.json()) as T;
+    };
+  }, [token]);
+}
