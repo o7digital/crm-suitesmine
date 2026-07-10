@@ -25,7 +25,7 @@ export default function LoginPage() {
   if (hasClerk) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4 py-8">
-        <SignIn />
+        <SignIn routing="hash" />
       </div>
     );
   }
