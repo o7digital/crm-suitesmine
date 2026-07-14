@@ -14,8 +14,8 @@ const nav = [
   { href: '/crm', labelKey: 'nav.crm' },
   { href: '/post-sales', labelKey: 'nav.postSales' },
   { href: '/orders', labelKey: 'nav.orders' },
-  { href: '/admin/mail', labelKey: 'admin.mail' },
-  { href: '/admin/calendar', labelKey: 'admin.calendar' },
+  { href: '/admin/mail', labelKey: 'nav.mailing' },
+  { href: '/admin/calendar', labelKey: 'nav.calendar' },
   { href: '/ia-pulse', labelKey: 'nav.iaPulse' },
   { href: '/forecast', labelKey: 'nav.forecast' },
   { href: '/export', labelKey: 'nav.export' },
@@ -129,24 +129,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <header className="app-header sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            {branding.logoDataUrl ? (
-              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={branding.logoDataUrl} alt="Logo" className="h-full w-full object-contain p-1" />
-              </div>
-            ) : (
-              <div className="brand-mark flex h-28 w-28 items-center justify-center rounded-xl">
-                <div className="text-center leading-[0.95]">
-                  <div className="text-[26px] font-extrabold">Suites</div>
-                  <div className="text-[24px] font-semibold">Mine</div>
-                </div>
-              </div>
-            )}
-            <div>
-              <p className="text-lg font-semibold">{user?.tenantName || 'Suites Mine CRM'}</p>
-              <p className="text-xs text-slate-400">{t('app.tagline')}</p>
-            </div>
+          <div className="min-w-[190px]">
+            <p className="whitespace-nowrap text-2xl font-semibold tracking-[0.01em]">
+              {user?.tenantName || 'Suites Mine CRM'}
+            </p>
+            <p className="mt-1 whitespace-nowrap text-xs text-slate-400">{t('app.tagline')}</p>
           </div>
           <nav className="hidden items-center gap-3 text-sm font-medium text-slate-200 md:flex">
             {filteredNav.map((item) => {
