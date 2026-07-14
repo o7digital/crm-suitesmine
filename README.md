@@ -46,6 +46,20 @@ npm install
 npm run start:dev
 ```
 
+Donnees de demo hotel B2C:
+
+```bash
+cd api
+npm run seed:demo
+```
+
+Le seed cree uniquement le tenant `Suites Mine Hotel Demo` avec des clients, offres, opportunites et taches hotellerie/B2C. Il peut etre relance pour remettre la demo a zero sans toucher aux autres tenants.
+
+Identifiants demo locaux:
+
+- email: `demo@suitesmine.local`
+- mot de passe: `DemoHotel2026!`
+
 Frontend:
 
 ```bash
