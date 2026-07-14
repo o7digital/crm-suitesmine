@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/nextjs';
 import { apiBaseForRequests } from '../lib/apiBase';
+import { demoApiResponse, demoUser } from '../lib/demoData';
 
 type User = {
   id: string;
@@ -139,17 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function startDemoSession() {
-      const apiBase = apiBaseForRequests();
-      const res = await fetch(`${apiBase}/auth/demo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-      });
-      if (!res.ok) throw new Error('Unable to start demo session');
-      return (await res.json()) as { token: string; user: User };
-    }
-
     async function restoreOrStartDemo() {
       let restored = false;
 
@@ -175,18 +165,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
       if (!restored && demoMode) {
-        try {
-          const payload = await startDemoSession();
-          if (!cancelled) {
-            authSource.current = 'local';
-            setToken(payload.token);
-            setUser(payload.user);
-            localStorage.setItem('token', payload.token);
-            localStorage.setItem('user', JSON.stringify(payload.user));
-            void bootstrapTenant(payload.token, { ignoreErrors: true });
-          }
-        } catch {
-          // Keep the app on the guarded loading state until the API demo user exists.
+        const payload = { token: 'demo-token', user: demoUser };
+        if (!cancelled) {
+          authSource.current = 'local';
+          setToken(payload.token);
+          setUser(payload.user);
+          localStorage.setItem('token', payload.token);
+          localStorage.setItem('user', JSON.stringify(payload.user));
         }
       }
 
@@ -313,8 +298,13 @@ export function useAuth() {
 
 export function useApi(token: string | null) {
   return useMemo(() => {
+    const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
     const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     return async <T = unknown>(path: string, init?: RequestInit): Promise<T> => {
+      if (demoMode) {
+        return demoApiResponse(path, init) as T;
+      }
+
       const requestUrl = `${apiBaseForRequests()}${path}`;
       const headers: Record<string, string> = { ...authHeader };
       if (!(init?.body instanceof FormData)) {
