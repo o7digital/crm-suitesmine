@@ -14,6 +14,8 @@ const nav = [
   { href: '/crm', labelKey: 'nav.crm' },
   { href: '/post-sales', labelKey: 'nav.postSales' },
   { href: '/orders', labelKey: 'nav.orders' },
+  { href: '/admin/mail', labelKey: 'admin.mail' },
+  { href: '/admin/calendar', labelKey: 'admin.calendar' },
   { href: '/ia-pulse', labelKey: 'nav.iaPulse' },
   { href: '/forecast', labelKey: 'nav.forecast' },
   { href: '/export', labelKey: 'nav.export' },

@@ -137,13 +137,13 @@ export function demoApiResponse(path: string, init?: RequestInit): unknown {
   if (cleanPath === '/admin/users') return [demoUser];
   if (cleanPath === '/tenant/branding') return { branding: {
     logoDataUrl: null,
-    backgroundColor: '#0f172a',
-    surfaceColor: '#111827',
-    cardColor: '#1f2937',
+    backgroundColor: '#10211f',
+    surfaceColor: '#17312f',
+    cardColor: '#213b38',
     foregroundColor: '#f8fafc',
-    mutedColor: '#94a3b8',
-    accentColor: '#c9a66b',
-    accentColor2: '#d8b77d',
+    mutedColor: '#b7c8c3',
+    accentColor: '#d8b36a',
+    accentColor2: '#38c6b4',
   } };
   if (cleanPath === '/tenant/settings') return { settings: { crmMode: 'B2C', industry: 'HOTEL', crmDisplayCurrency: 'USD' } };
   if (cleanPath === '/fx/usd') return { base: 'USD', date: '2026-07-14', provider: 'demo', rates: { USD: 1, EUR: 0.92, MXN: 18.2, CAD: 1.36 } };
