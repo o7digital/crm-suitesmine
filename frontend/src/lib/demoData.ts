@@ -135,6 +135,16 @@ export function demoApiResponse(path: string, init?: RequestInit): unknown {
   if (cleanPath === '/products') return [];
   if (cleanPath === '/invoices') return [];
   if (cleanPath === '/admin/users') return [demoUser];
+  if (cleanPath === '/tenant/branding') return { branding: {
+    logoDataUrl: null,
+    backgroundColor: '#0f172a',
+    surfaceColor: '#111827',
+    cardColor: '#1f2937',
+    foregroundColor: '#f8fafc',
+    mutedColor: '#94a3b8',
+    accentColor: '#c9a66b',
+    accentColor2: '#d8b77d',
+  } };
   if (cleanPath === '/tenant/settings') return { settings: { crmMode: 'B2C', industry: 'HOTEL', crmDisplayCurrency: 'USD' } };
   if (cleanPath === '/fx/usd') return { base: 'USD', date: '2026-07-14', provider: 'demo', rates: { USD: 1, EUR: 0.92, MXN: 18.2, CAD: 1.36 } };
   if (path.startsWith('/export/')) return 'name,email,status\nCamille Durand,camille.durand@example.com,CLIENT\nMateo Rodriguez,mateo.rodriguez@example.com,PROSPECT\n';
