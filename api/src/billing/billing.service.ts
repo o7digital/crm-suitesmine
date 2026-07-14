@@ -112,10 +112,10 @@ export class BillingService {
   private seatsForPlan(plan: string | undefined): number {
     const seatsByPlan: Record<CrmPlan, number> = {
       PULSE_BASIC: 1,
-      PULSE_STANDARD: 3,
-      PULSE_ADVANCED: 5,
+      PULSE_STANDARD: 1,
+      PULSE_ADVANCED: 3,
       PULSE_ADVANCED_PLUS: 10,
-      PULSE_TEAM: 30,
+      PULSE_TEAM: 10,
     };
     return plan && plan in seatsByPlan ? seatsByPlan[plan as CrmPlan] : 1;
   }

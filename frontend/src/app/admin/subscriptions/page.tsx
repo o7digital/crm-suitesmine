@@ -74,10 +74,10 @@ type CustomerCountry = 'CA' | 'MX' | 'FR';
 const DEFAULT_SEATS_BY_PLAN: Record<SubscriptionPlan, number> = {
   TRIAL: 1,
   PULSE_BASIC: 1,
-  PULSE_STANDARD: 3,
-  PULSE_ADVANCED: 5,
+  PULSE_STANDARD: 1,
+  PULSE_ADVANCED: 3,
   PULSE_ADVANCED_PLUS: 10,
-  PULSE_TEAM: 20,
+  PULSE_TEAM: 10,
 };
 
 const DEFAULT_INVITE_DRAFT: InviteDraft = {

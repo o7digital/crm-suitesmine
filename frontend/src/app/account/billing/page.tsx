@@ -8,11 +8,9 @@ import { useApi, useAuth } from '../../../contexts/AuthContext';
 import { useI18n } from '../../../contexts/I18nContext';
 
 const PLANS = [
-  { id: 'PULSE_BASIC', name: 'Basic', price: 19, seats: 1 },
-  { id: 'PULSE_STANDARD', name: 'Standard', price: 39, seats: 3 },
-  { id: 'PULSE_ADVANCED', name: 'Advanced', price: 49, seats: 5 },
-  { id: 'PULSE_ADVANCED_PLUS', name: 'Advanced Plus', price: 89, seats: 10 },
-  { id: 'PULSE_TEAM', name: 'Team', price: 139, seats: 30 },
+  { id: 'PULSE_BASIC', name: 'Standard', price: 29, seatsLabel: '1 user' },
+  { id: 'PULSE_ADVANCED', name: 'Advanced', price: 39, seatsLabel: 'Up to 3 users' },
+  { id: 'PULSE_TEAM', name: 'Team', price: 79, seatsLabel: 'Up to 10 users' },
 ] as const;
 
 type PlanId = (typeof PLANS)[number]['id'];
@@ -67,7 +65,7 @@ function BillingContent() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3">
           {PLANS.map((plan) => {
             const isLoading = loadingPlan === plan.id;
             return (
@@ -77,9 +75,7 @@ function BillingContent() {
                   ${plan.price}
                   <span className="text-sm font-normal text-slate-400"> / month</span>
                 </p>
-                <p className="mt-3 text-sm text-slate-300">
-                  {plan.seats} {plan.seats === 1 ? 'seat' : 'seats'}
-                </p>
+                <p className="mt-3 text-sm text-slate-300">{plan.seatsLabel}</p>
                 <button
                   type="button"
                   className="btn-primary mt-auto w-full text-sm"

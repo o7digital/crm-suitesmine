@@ -781,13 +781,13 @@ export class AdminService {
             case 'PULSE_BASIC':
               return 1;
             case 'PULSE_STANDARD':
-              return 3;
+              return 1;
             case 'PULSE_ADVANCED':
-              return 5;
+              return 3;
             case 'PULSE_ADVANCED_PLUS':
               return 10;
             case 'PULSE_TEAM':
-              return 20;
+              return 10;
             case 'TRIAL':
             default:
               return 1;
