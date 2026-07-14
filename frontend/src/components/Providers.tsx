@@ -7,6 +7,7 @@ import { BrandingProvider } from '../contexts/BrandingContext';
 import { I18nProvider } from '../contexts/I18nContext';
 
 export function Providers({ children }: { children: ReactNode }) {
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   if (!hasClerk) {
@@ -30,6 +31,8 @@ export function Providers({ children }: { children: ReactNode }) {
       </AuthProvider>
     </I18nProvider>
   );
+
+  if (demoMode) return content;
 
   return <ClerkProvider>{content}</ClerkProvider>;
 }

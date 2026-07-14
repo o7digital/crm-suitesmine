@@ -16,6 +16,9 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE !== 'false') {
+    return NextResponse.next();
+  }
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     return NextResponse.next();
   }

@@ -20,6 +20,11 @@ export class AuthController {
     return this.authService.login(body);
   }
 
+  @Post('demo')
+  demo() {
+    return this.authService.demo();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@CurrentUser() user: RequestUser) {

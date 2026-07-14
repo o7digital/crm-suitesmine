@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/nextjs';
 import { apiBaseForRequests } from '../lib/apiBase';
 
@@ -96,6 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const authSource = useRef<'local' | 'clerk' | null>(null);
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   const bootstrapTenant = useCallback(async (accessToken: string, opts?: { ignoreErrors?: boolean }) => {
@@ -135,17 +137,100 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setLoading(false);
-  }, []);
+    let cancelled = false;
+
+    async function startDemoSession() {
+      const apiBase = apiBaseForRequests();
+      const res = await fetch(`${apiBase}/auth/demo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('Unable to start demo session');
+      return (await res.json()) as { token: string; user: User };
+    }
+
+    async function restoreOrStartDemo() {
+      let restored = false;
+
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      if (storedToken && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser) as User;
+          if (parsedUser?.id && parsedUser?.tenantId) {
+            authSource.current = 'local';
+            if (!cancelled) {
+              setToken(storedToken);
+              setUser(parsedUser);
+            }
+            restored = true;
+          }
+        } catch {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      }
+    }
+
+      if (!restored && demoMode) {
+        try {
+          const payload = await startDemoSession();
+          if (!cancelled) {
+            authSource.current = 'local';
+            setToken(payload.token);
+            setUser(payload.user);
+            localStorage.setItem('token', payload.token);
+            localStorage.setItem('user', JSON.stringify(payload.user));
+            void bootstrapTenant(payload.token, { ignoreErrors: true });
+          }
+        } catch {
+          // Keep the app on the guarded loading state until the API demo user exists.
+        }
+      }
+
+      if (!cancelled) setLoading(false);
+    }
+
+    void restoreOrStartDemo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bootstrapTenant, demoMode]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      void email;
-      void password;
-      if (!hasClerk) throw new Error('Clerk configuration is missing');
-      if (typeof window !== 'undefined') window.location.href = '/sign-in';
+      const apiBase = apiBaseForRequests();
+      const res = await fetch(`${apiBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        let message = 'Unable to login';
+        try {
+          const payload = (await res.json()) as { message?: string | string[]; error?: string };
+          if (typeof payload.message === 'string') message = payload.message;
+          if (Array.isArray(payload.message)) message = payload.message.join('; ');
+          if (!payload.message && payload.error) message = payload.error;
+        } catch {
+          // Keep the generic message.
+        }
+        throw new Error(message);
+      }
+
+      const payload = (await res.json()) as { token: string; user: User };
+      authSource.current = 'local';
+      setToken(payload.token);
+      setUser(payload.user);
+      localStorage.setItem('token', payload.token);
+      localStorage.setItem('user', JSON.stringify(payload.user));
+      void bootstrapTenant(payload.token, { ignoreErrors: true });
     },
-    [hasClerk],
+    [bootstrapTenant],
   );
 
   const register = useCallback(
@@ -160,11 +245,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       legalContractVersion?: string;
     }) => {
       void payload;
+      if (demoMode) return 'signed-in' as const;
       if (!hasClerk) throw new Error('Clerk configuration is missing');
       if (typeof window !== 'undefined') window.location.href = '/sign-up';
       return 'confirm' as const;
     },
-    [hasClerk],
+    [demoMode, hasClerk],
   );
 
   const clearAuthStorage = useCallback(() => {
@@ -174,10 +260,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (hasClerk && typeof window !== 'undefined') window.location.href = '/sign-out';
+    const source = authSource.current;
+    authSource.current = null;
     setToken(null);
     setUser(null);
     clearAuthStorage();
+    if (source === 'clerk' && hasClerk && typeof window !== 'undefined') window.location.href = '/sign-out';
   }, [clearAuthStorage, hasClerk]);
 
   const value = useMemo(
@@ -194,9 +282,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {hasClerk ? (
+      {hasClerk && !demoMode ? (
         <ClerkSessionSync
           onSession={({ token: nextToken, user: nextUser }) => {
+            authSource.current = 'clerk';
             setToken(nextToken);
             setUser(nextUser);
             localStorage.setItem('token', nextToken);
@@ -204,6 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             void bootstrapTenant(nextToken, { ignoreErrors: true });
           }}
           onSignedOut={() => {
+            if (authSource.current === 'local') return;
             setToken(null);
             setUser(null);
             clearAuthStorage();
