@@ -50,6 +50,11 @@ export default function AdminMailPage() {
           setSetup({
             ...emptyMailchimp,
             ...marketingSetup,
+            reservationUrl: marketingSetup.reservationUrl || emptyMailchimp.reservationUrl,
+            websiteUrl: marketingSetup.websiteUrl || emptyMailchimp.websiteUrl,
+            address: marketingSetup.address || emptyMailchimp.address,
+            phone: marketingSetup.phone || emptyMailchimp.phone,
+            heroImage: marketingSetup.heroImage || emptyMailchimp.heroImage,
             mailchimp: {
               ...emptyMailchimp.mailchimp,
               ...(marketingSetup.mailchimp ?? {}),
@@ -119,17 +124,17 @@ export default function AdminMailPage() {
 
         {status ? <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-200">{status}</div> : null}
 
-        <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-          <section className="space-y-4">
+        <div className="grid items-start gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <section className="space-y-4 xl:sticky xl:top-24">
             <div className="card p-5">
               <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Campagnes annoncees</p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-5">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {seed.campaigns.map((campaign) => (
                   <button
                     key={campaign.id}
                     type="button"
                     onClick={() => setCampaignId(campaign.id)}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
+                    className={`min-w-24 rounded-lg border px-4 py-2 text-sm ${
                       campaign.id === campaignId
                         ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-slate-950'
                         : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
@@ -143,7 +148,7 @@ export default function AdminMailPage() {
 
             <div className="card p-5">
               <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Configuration Mailchimp</p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Field label="Nom compte" value={setup.accountLabel ?? ''} onChange={(accountLabel) => setSetup((prev) => ({ ...prev, accountLabel }))} />
                 <Field label="From name" value={setup.fromName ?? ''} onChange={(fromName) => setSetup((prev) => ({ ...prev, fromName }))} />
                 <Field label="From email" value={setup.fromEmail ?? ''} onChange={(fromEmail) => setSetup((prev) => ({ ...prev, fromEmail }))} />
@@ -171,7 +176,7 @@ export default function AdminMailPage() {
             </div>
           </section>
 
-          <section className="space-y-4">
+          <section className="min-w-0 space-y-4">
             <div className="card p-5">
               <div className="grid gap-3 md:grid-cols-3">
                 <Info label="Fenetre" value={selected.sendWindow} />
@@ -264,34 +269,40 @@ function NewsletterPreview({
   preheader: string;
   body: string;
 }) {
+  const heroImage = setup.heroImage || emptyMailchimp.heroImage;
+
   return (
-    <div className="mt-4 overflow-hidden rounded-lg border border-[#d6c8ad] bg-[#efe7d8] p-3 text-[#1d1a16] shadow-2xl shadow-black/25">
-      <div className="mx-auto max-w-[720px] overflow-hidden rounded-md bg-[#fbf8f1]">
-        <div className="bg-[#18251f] px-6 py-3 text-center text-xs text-[#d7c6a3]">
-          {preheader}
-        </div>
-
-        <div className="flex items-center justify-between gap-4 border-b border-[#e3d7c3] px-7 py-5">
-          <div>
-            <p className="font-serif text-2xl font-semibold tracking-normal text-[#1f2f28]">Suites Mine</p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#9c7a3f]">Apart hotel | CDMX</p>
+    <div className="mt-4 rounded-xl border border-[#d6c8ad] bg-[#efe7d8] p-4 text-[#1d1a16] shadow-2xl shadow-black/25">
+      <div className="mx-auto max-w-[760px] overflow-hidden rounded-lg bg-[#fbf8f1]">
+        <div className="grid md:grid-cols-[1fr_280px]">
+          <div className="bg-[#fbf8f1] px-7 py-7">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#9c7a3f]">Suites Mine</p>
+            <h2 className="mt-3 font-serif text-4xl leading-tight tracking-normal text-[#203229]">
+              {campaign.headline}
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-[#6a5f50]">{preheader}</p>
           </div>
-          <div className="text-right text-xs leading-5 text-[#6f6658]">
-            <p>Rio Ebro 64</p>
-            <p>Colonia Cuauhtemoc</p>
-          </div>
-        </div>
-
-        <div className="relative">
           <div
             aria-label="Suites Mine"
-            className="h-72 w-full bg-cover bg-center"
+            className="min-h-64 bg-cover bg-center"
             role="img"
-            style={{ backgroundImage: `url(${setup.heroImage})` }}
-          />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-7 pb-7 pt-20 text-white">
-            <p className="text-xs uppercase tracking-[0.2em] text-[#e6c77d]">{campaign.eyebrow}</p>
-            <h2 className="mt-3 max-w-xl font-serif text-4xl leading-tight tracking-normal">{campaign.headline}</h2>
+            style={{ backgroundImage: `url(${heroImage})` }}
+          >
+            <div className="flex h-full min-h-64 items-end bg-gradient-to-t from-black/60 via-black/10 to-transparent p-5">
+              <p className="rounded-md bg-[#18251f]/90 px-3 py-2 text-xs uppercase tracking-[0.16em] text-[#e6c77d]">
+                {campaign.month}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-y border-[#e3d7c3] bg-[#18251f] px-7 py-5 text-[#f4ead7]">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-serif text-2xl font-semibold tracking-normal">Suites Mine</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#d7c6a3]">Apart hotel cerca del Angel</p>
+            </div>
+            <p className="max-w-sm text-sm leading-6 text-[#d7c6a3]">{campaign.eyebrow}</p>
           </div>
         </div>
 
