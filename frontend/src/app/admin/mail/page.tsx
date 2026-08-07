@@ -258,7 +258,8 @@ function buildMailchimpPayload(
       content: {
         headline: campaign.headline,
         eyebrow: campaign.eyebrow,
-        heroImage: setup.heroImage,
+        heroImage: campaign.heroImage || setup.heroImage,
+        gallery: setup.gallery,
         body,
         cta: campaign.cta,
         highlights: campaign.highlights,
@@ -282,7 +283,8 @@ function NewsletterPreview({
   preheader: string;
   body: string;
 }) {
-  const heroImage = setup.heroImage || emptyMailchimp.heroImage;
+  const heroImage = campaign.heroImage || setup.heroImage || emptyMailchimp.heroImage;
+  const gallery = setup.gallery?.length ? setup.gallery : emptyMailchimp.gallery;
 
   return (
     <div className="mt-4 rounded-xl border border-[#d6c8ad] bg-[#efe7d8] p-4 text-[#1d1a16] shadow-2xl shadow-black/25">
@@ -345,6 +347,29 @@ function NewsletterPreview({
           </aside>
         </div>
 
+        <div className="border-t border-[#e3d7c3] bg-[#f7f0e4] px-7 py-7">
+          <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[#9c7a3f]">Amenidades</p>
+              <h3 className="font-serif text-2xl tracking-normal text-[#203229]">Roof garden, bar y jacuzzi</h3>
+            </div>
+            <p className="text-sm text-[#6a5f50]">Fotos reales de Suites Mine</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            {gallery.map((image, index) => (
+              <div
+                key={image}
+                aria-label={`Suites Mine amenidad ${index + 1}`}
+                className={`rounded-lg border border-[#d8c8ad] bg-cover bg-center shadow-sm ${
+                  index === 3 ? 'min-h-28 sm:col-span-2' : 'min-h-36'
+                }`}
+                role="img"
+                style={{ backgroundImage: `url(${image})` }}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="border-t border-[#e3d7c3] bg-[#18251f] px-7 py-6 text-sm text-[#f4ead7]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -373,8 +398,14 @@ function buildMailchimpHtml(
     .split(/\n{2,}/)
     .map((paragraph) => `<p style="margin:0 0 18px;color:#4c453b;font-size:15px;line-height:1.75;">${escapeHtml(paragraph)}</p>`)
     .join('');
+  const heroImage = campaign.heroImage || setup.heroImage;
+  const gallery = setup.gallery?.length ? setup.gallery : emptyMailchimp.gallery;
   const highlights = campaign.highlights
     .map((item) => `<td style="padding:8px;"><div style="border:1px solid #d8c8ad;background:#fffaf0;padding:14px;border-radius:8px;color:#3d382f;font-size:14px;line-height:1.5;">${escapeHtml(item)}</div></td>`)
+    .join('');
+  const galleryHtml = gallery
+    .slice(0, 3)
+    .map((image) => `<td style="padding:8px;"><img src="${escapeHtml(image)}" alt="Suites Mine amenidades" width="188" style="display:block;width:100%;height:auto;border:0;border-radius:8px;" /></td>`)
     .join('');
 
   return `<!doctype html>
@@ -392,7 +423,7 @@ function buildMailchimpHtml(
                 <div style="margin-top:6px;color:#9c7a3f;font-size:11px;text-transform:uppercase;letter-spacing:2px;">Apart hotel | CDMX</div>
               </td>
             </tr>
-            <tr><td><img src="${escapeHtml(setup.heroImage)}" alt="Suites Mine" width="680" style="display:block;width:100%;height:auto;border:0;" /></td></tr>
+            <tr><td><img src="${escapeHtml(heroImage)}" alt="Suites Mine" width="680" style="display:block;width:100%;height:auto;border:0;" /></td></tr>
             <tr>
               <td style="padding:34px 34px 20px;">
                 <div style="color:#9c7a3f;font-size:12px;text-transform:uppercase;letter-spacing:2px;">${escapeHtml(campaign.eyebrow)}</div>
@@ -403,6 +434,12 @@ function buildMailchimpHtml(
               </td>
             </tr>
             <tr><td style="padding:0 26px 28px;"><table role="presentation" width="100%"><tr>${highlights}</tr></table></td></tr>
+            <tr>
+              <td style="padding:0 26px 30px;">
+                <div style="padding:0 8px 10px;color:#9c7a3f;font-size:12px;text-transform:uppercase;letter-spacing:2px;">Amenidades reales</div>
+                <table role="presentation" width="100%"><tr>${galleryHtml}</tr></table>
+              </td>
+            </tr>
             <tr>
               <td style="background:#18251f;color:#f4ead7;padding:24px 30px;font-size:13px;line-height:1.6;">
                 <strong>Suites Mine</strong><br />
