@@ -119,7 +119,7 @@ export default function AdminMailPage() {
 
         {status ? <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-200">{status}</div> : null}
 
-        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
           <section className="space-y-4">
             <div className="card p-5">
               <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Campagnes annoncees</p>
@@ -181,25 +181,8 @@ export default function AdminMailPage() {
             </div>
 
             <div className="card p-5">
-              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Apercu email</p>
-              <div className="mt-4 overflow-hidden rounded-lg border border-[#d8dee9] bg-[#f8fafc] text-[#111827]">
-                <div className="bg-[#0f766e] px-6 py-5 text-white">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#ccfbf1]">Suites Mine</p>
-                  <p className="mt-2 text-sm">{preheader}</p>
-                </div>
-                <div className="p-6">
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#0f766e]">{selected.month}</p>
-                  <h2 className="mt-2 text-3xl font-semibold leading-tight">{selected.headline}</h2>
-                  <div className="mt-5 space-y-4 text-sm leading-7 text-[#374151]">
-                    {body.split(/\n{2,}/).map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                  </div>
-                  <button className="mt-6 rounded-lg bg-[#0f766e] px-5 py-3 text-sm font-semibold text-white" type="button">
-                    {selected.cta}
-                  </button>
-                </div>
-              </div>
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Apercu email premium</p>
+              <NewsletterPreview campaign={selected} setup={setup} subject={subject} preheader={preheader} body={body} />
             </div>
 
             <div className="card p-5">
@@ -256,12 +239,168 @@ function buildMailchimpPayload(
       },
       content: {
         headline: campaign.headline,
+        eyebrow: campaign.eyebrow,
+        heroImage: setup.heroImage,
         body,
         cta: campaign.cta,
+        highlights: campaign.highlights,
         mergeTags: campaign.mailchimp.mergeTags,
+        html: buildMailchimpHtml(campaign, setup, subject, preheader, body),
       },
     },
   };
+}
+
+function NewsletterPreview({
+  campaign,
+  setup,
+  subject,
+  preheader,
+  body,
+}: {
+  campaign: NewsletterCampaign;
+  setup: MailchimpSetup;
+  subject: string;
+  preheader: string;
+  body: string;
+}) {
+  return (
+    <div className="mt-4 overflow-hidden rounded-lg border border-[#d6c8ad] bg-[#efe7d8] p-3 text-[#1d1a16] shadow-2xl shadow-black/25">
+      <div className="mx-auto max-w-[720px] overflow-hidden rounded-md bg-[#fbf8f1]">
+        <div className="bg-[#18251f] px-6 py-3 text-center text-xs text-[#d7c6a3]">
+          {preheader}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 border-b border-[#e3d7c3] px-7 py-5">
+          <div>
+            <p className="font-serif text-2xl font-semibold tracking-normal text-[#1f2f28]">Suites Mine</p>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#9c7a3f]">Apart hotel | CDMX</p>
+          </div>
+          <div className="text-right text-xs leading-5 text-[#6f6658]">
+            <p>Rio Ebro 64</p>
+            <p>Colonia Cuauhtemoc</p>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div
+            aria-label="Suites Mine"
+            className="h-72 w-full bg-cover bg-center"
+            role="img"
+            style={{ backgroundImage: `url(${setup.heroImage})` }}
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-7 pb-7 pt-20 text-white">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#e6c77d]">{campaign.eyebrow}</p>
+            <h2 className="mt-3 max-w-xl font-serif text-4xl leading-tight tracking-normal">{campaign.headline}</h2>
+          </div>
+        </div>
+
+        <div className="grid gap-0 md:grid-cols-[1fr_220px]">
+          <div className="px-7 py-7">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#9c7a3f]">{campaign.month}</p>
+            <h3 className="mt-2 font-serif text-2xl leading-snug tracking-normal text-[#203229]">{subject}</h3>
+            <div className="mt-5 space-y-4 text-[15px] leading-7 text-[#4c453b]">
+              {body.split(/\n{2,}/).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+            <button className="mt-7 rounded-md bg-[#1f3a31] px-6 py-3 text-sm font-semibold text-white" type="button">
+              {campaign.cta}
+            </button>
+          </div>
+
+          <aside className="border-t border-[#e3d7c3] bg-[#f3ead9] px-6 py-7 md:border-l md:border-t-0">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#9c7a3f]">Incluye</p>
+            <div className="mt-4 space-y-3">
+              {campaign.highlights.map((item) => (
+                <div key={item} className="rounded-md border border-[#d8c8ad] bg-white/55 p-3 text-sm leading-5 text-[#3d382f]">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+
+        <div className="border-t border-[#e3d7c3] bg-[#18251f] px-7 py-6 text-sm text-[#f4ead7]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold">Suites Mine</p>
+              <p className="mt-1 text-xs text-[#d7c6a3]">{setup.address}</p>
+            </div>
+            <div className="text-xs text-[#d7c6a3] md:text-right">
+              <p>{setup.phone}</p>
+              <p>{setup.replyTo}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildMailchimpHtml(
+  campaign: NewsletterCampaign,
+  setup: MailchimpSetup,
+  subject: string,
+  preheader: string,
+  body: string,
+) {
+  const paragraphs = body
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p style="margin:0 0 18px;color:#4c453b;font-size:15px;line-height:1.75;">${escapeHtml(paragraph)}</p>`)
+    .join('');
+  const highlights = campaign.highlights
+    .map((item) => `<td style="padding:8px;"><div style="border:1px solid #d8c8ad;background:#fffaf0;padding:14px;border-radius:8px;color:#3d382f;font-size:14px;line-height:1.5;">${escapeHtml(item)}</div></td>`)
+    .join('');
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#efe7d8;font-family:Arial,Helvetica,sans-serif;color:#1d1a16;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#efe7d8;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="680" cellspacing="0" cellpadding="0" style="max-width:680px;width:100%;background:#fbf8f1;border:1px solid #d6c8ad;border-radius:10px;overflow:hidden;">
+            <tr><td style="background:#18251f;color:#d7c6a3;text-align:center;padding:12px 24px;font-size:12px;">${escapeHtml(preheader)}</td></tr>
+            <tr>
+              <td style="padding:24px 30px;border-bottom:1px solid #e3d7c3;">
+                <div style="font-family:Georgia,serif;font-size:28px;font-weight:700;color:#1f2f28;">Suites Mine</div>
+                <div style="margin-top:6px;color:#9c7a3f;font-size:11px;text-transform:uppercase;letter-spacing:2px;">Apart hotel | CDMX</div>
+              </td>
+            </tr>
+            <tr><td><img src="${escapeHtml(setup.heroImage)}" alt="Suites Mine" width="680" style="display:block;width:100%;height:auto;border:0;" /></td></tr>
+            <tr>
+              <td style="padding:34px 34px 20px;">
+                <div style="color:#9c7a3f;font-size:12px;text-transform:uppercase;letter-spacing:2px;">${escapeHtml(campaign.eyebrow)}</div>
+                <h1 style="margin:12px 0 8px;font-family:Georgia,serif;font-size:38px;line-height:1.12;color:#203229;">${escapeHtml(campaign.headline)}</h1>
+                <h2 style="margin:0 0 24px;font-size:18px;line-height:1.45;color:#5b5348;font-weight:500;">${escapeHtml(subject)}</h2>
+                ${paragraphs}
+                <a href="${escapeHtml(setup.reservationUrl)}" style="display:inline-block;margin-top:8px;background:#1f3a31;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:8px;font-weight:700;font-size:14px;">${escapeHtml(campaign.cta)}</a>
+              </td>
+            </tr>
+            <tr><td style="padding:0 26px 28px;"><table role="presentation" width="100%"><tr>${highlights}</tr></table></td></tr>
+            <tr>
+              <td style="background:#18251f;color:#f4ead7;padding:24px 30px;font-size:13px;line-height:1.6;">
+                <strong>Suites Mine</strong><br />
+                ${escapeHtml(setup.address)}<br />
+                ${escapeHtml(setup.phone)} | ${escapeHtml(setup.replyTo)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+function escapeHtml(raw: string) {
+  return raw
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function Field({
