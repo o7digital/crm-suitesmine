@@ -1,287 +1,212 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../../../components/AppShell';
 import { Guard } from '../../../components/Guard';
-import { useI18n } from '../../../contexts/I18nContext';
-import type { LanguageCode } from '../../../i18n/types';
+import { useApi, useAuth } from '../../../contexts/AuthContext';
+import seed from '../../../lib/newsletterCampaigns.json';
 
-type NewsletterCopy = {
-  pageKicker: string;
-  pageTitle: string;
-  pageSubtitle: string;
-  action: string;
-  metrics: { label: string; value: string; hint: string }[];
-  sheetTitle: string;
-  subjectLabel: string;
-  preheaderLabel: string;
-  audienceLabel: string;
-  goalLabel: string;
-  subject: string;
-  preheader: string;
-  audience: string;
-  goal: string;
-  emailKicker: string;
-  emailTitle: string;
-  greeting: string;
-  body: string[];
-  cta: string;
-  signature: string;
-  segmentsTitle: string;
-  segments: { name: string; count: string; note: string }[];
-  socialTitle: string;
-  socialIntro: string;
-  socialPosts: { channel: string; copy: string; date: string }[];
-  checklistTitle: string;
-  checklist: string[];
+type MailchimpSetup = typeof seed.mailchimp;
+type NewsletterCampaign = (typeof seed.campaigns)[number];
+
+type TenantSettingsResponse = {
+  settings: {
+    marketingSetup?: MailchimpSetup | null;
+  };
 };
 
-const copyByLanguage: Partial<Record<LanguageCode, NewsletterCopy>> = {
-  en: {
-    pageKicker: 'Marketing',
-    pageTitle: 'Hotel Newsletter Sheet',
-    pageSubtitle: 'A complete guest newsletter draft, ready for email and later repurposed for social media.',
-    action: 'Approve send',
-    metrics: [
-      { label: 'Audience', value: '2,952', hint: 'Qualified hotel contacts' },
-      { label: 'Main segment', value: '1,240', hint: 'Returning leisure guests' },
-      { label: 'Expected opens', value: '520', hint: 'Based on 42% open rate' },
-      { label: 'Booking target', value: '$31.4k', hint: 'Projected 30-day revenue' },
-    ],
-    sheetTitle: 'Campaign Brief',
-    subjectLabel: 'Subject',
-    preheaderLabel: 'Preheader',
-    audienceLabel: 'Audience',
-    goalLabel: 'Goal',
-    subject: 'Your summer return to Suites Mine starts with a quieter weekend',
-    preheader: 'A suite upgrade, breakfast and spa credit for returning guests.',
-    audience: 'Returning guests who stayed in the last 18 months and engaged with wellness or weekend offers.',
-    goal: 'Drive direct weekend bookings for July and August without discounting the room rate.',
-    emailKicker: 'Returning guest invitation',
-    emailTitle: 'A quieter weekend at Suites Mine',
-    greeting: 'Hello Camille,',
-    body: [
-      'We remember your last stay in the garden wing and the quiet morning breakfast you preferred.',
-      'This summer, we are opening a limited return-guest package: two nights in a suite, breakfast included, late checkout and a spa credit reserved before arrival.',
-      'If you are planning a pause before the season gets busy, our team can hold your preferred dates and prepare the room exactly as you like it.',
-    ],
-    cta: 'Reserve my summer weekend',
-    signature: 'The Suites Mine guest relations team',
-    segmentsTitle: 'Audience segments',
-    segments: [
-      { name: 'Returning leisure guests', count: '1,240', note: 'Spa, suite and weekend intent' },
-      { name: 'Family summer guests', count: '860', note: 'School holiday package follow-up' },
-      { name: 'Corporate long stay', count: '312', note: 'Invoice-ready repeat travelers' },
-      { name: 'Restaurant loyal guests', count: '540', note: 'Dinner credit and local stays' },
-    ],
-    socialTitle: 'Social republishing plan',
-    socialIntro: 'After the email send, the same offer becomes short posts for Instagram, Facebook and LinkedIn.',
-    socialPosts: [
-      { channel: 'Instagram', date: 'Jul 19', copy: 'A quiet suite, late checkout and a spa credit. Summer weekends at Suites Mine are made for returning guests.' },
-      { channel: 'Facebook', date: 'Jul 20', copy: 'Our return-guest summer package is now open: breakfast included, suite upgrade options and a reserved spa moment.' },
-      { channel: 'LinkedIn', date: 'Jul 22', copy: 'Direct booking campaign focused on loyalty, wellness and premium weekend occupancy at Suites Mine.' },
-    ],
-    checklistTitle: 'Before sending',
-    checklist: ['Validate room availability for the next 4 weekends.', 'Confirm spa credit capacity.', 'Add direct booking UTM links.', 'Prepare follow-up task for clicked guests.'],
-  },
-  fr: {
-    pageKicker: 'Marketing',
-    pageTitle: 'Feuille Newsletter Hotel',
-    pageSubtitle: 'Un vrai brouillon de newsletter client, pret pour email puis declinaison reseaux sociaux.',
-    action: 'Valider l envoi',
-    metrics: [
-      { label: 'Audience', value: '2 952', hint: 'Contacts hotel qualifies' },
-      { label: 'Segment principal', value: '1 240', hint: 'Hotes loisirs recurrents' },
-      { label: 'Ouvertures prevues', value: '520', hint: 'Base taux ouverture 42%' },
-      { label: 'Objectif booking', value: '$31.4k', hint: 'CA projete 30 jours' },
-    ],
-    sheetTitle: 'Brief de campagne',
-    subjectLabel: 'Objet',
-    preheaderLabel: 'Preheader',
-    audienceLabel: 'Audience',
-    goalLabel: 'Objectif',
-    subject: 'Votre retour estival a Suites Mine commence par un week-end plus calme',
-    preheader: 'Surclassement suite, petit-dejeuner et credit spa pour nos hotes fideles.',
-    audience: 'Hotes revenus dans les 18 derniers mois et interesses par les offres bien-etre ou week-end.',
-    goal: 'Generer des reservations directes en juillet/aout sans baisser le prix chambre.',
-    emailKicker: 'Invitation hote fidele',
-    emailTitle: 'Un week-end plus calme a Suites Mine',
-    greeting: 'Bonjour Camille,',
-    body: [
-      'Nous nous souvenons de votre dernier sejour cote jardin et du petit-dejeuner tranquille que vous aviez apprecie.',
-      'Cet ete, nous ouvrons une offre limitee pour nos hotes fideles: deux nuits en suite, petit-dejeuner inclus, depart tardif et credit spa reserve avant votre arrivee.',
-      'Si vous souhaitez faire une pause avant la haute saison, notre equipe peut bloquer vos dates preferees et preparer la chambre selon vos habitudes.',
-    ],
-    cta: 'Reserver mon week-end d ete',
-    signature: 'L equipe relation hotes de Suites Mine',
-    segmentsTitle: 'Segments audience',
-    segments: [
-      { name: 'Hotes loisirs recurrents', count: '1 240', note: 'Intentions spa, suite, week-end' },
-      { name: 'Familles ete', count: '860', note: 'Relance vacances scolaires' },
-      { name: 'Long sejour corporate', count: '312', note: 'Voyageurs repetes avec facture' },
-      { name: 'Clients restaurant fideles', count: '540', note: 'Credit diner et sejour local' },
-    ],
-    socialTitle: 'Plan de republication reseaux',
-    socialIntro: 'Apres l email, la meme offre est transformee en posts Instagram, Facebook et LinkedIn.',
-    socialPosts: [
-      { channel: 'Instagram', date: '19 juil.', copy: 'Une suite calme, depart tardif et credit spa. Les week-ends d ete Suites Mine sont penses pour nos hotes fideles.' },
-      { channel: 'Facebook', date: '20 juil.', copy: 'Notre offre ete hotes fideles est ouverte: petit-dejeuner inclus, options suite et moment spa reserve.' },
-      { channel: 'LinkedIn', date: '22 juil.', copy: 'Campagne reservation directe axee fidelite, bien-etre et occupation premium week-end pour Suites Mine.' },
-    ],
-    checklistTitle: 'Avant envoi',
-    checklist: ['Valider les disponibilites des 4 prochains week-ends.', 'Confirmer la capacite spa.', 'Ajouter les liens UTM reservation directe.', 'Preparer les taches de relance pour les clics.'],
-  },
-  es: {
-    pageKicker: 'Marketing',
-    pageTitle: 'Hoja de Newsletter del Hotel',
-    pageSubtitle: 'Borrador completo para email, listo para enviar y luego adaptar a redes sociales.',
-    action: 'Aprobar envio',
-    metrics: [
-      { label: 'Audiencia', value: '2,952', hint: 'Contactos hoteleros calificados' },
-      { label: 'Segmento principal', value: '1,240', hint: 'Huespedes leisure recurrentes' },
-      { label: 'Aperturas esperadas', value: '520', hint: 'Con tasa de apertura 42%' },
-      { label: 'Objetivo reservas', value: '$31.4k', hint: 'Ingresos proyectados 30 dias' },
-    ],
-    sheetTitle: 'Brief de campana',
-    subjectLabel: 'Asunto',
-    preheaderLabel: 'Preheader',
-    audienceLabel: 'Audiencia',
-    goalLabel: 'Objetivo',
-    subject: 'Tu regreso de verano a Suites Mine empieza con un fin de semana mas tranquilo',
-    preheader: 'Upgrade a suite, desayuno y credito de spa para huespedes recurrentes.',
-    audience: 'Huespedes que se alojaron en los ultimos 18 meses e interactuaron con ofertas wellness o weekend.',
-    goal: 'Impulsar reservas directas de julio y agosto sin bajar la tarifa de habitacion.',
-    emailKicker: 'Invitacion para huesped recurrente',
-    emailTitle: 'Un fin de semana mas tranquilo en Suites Mine',
-    greeting: 'Hola Camille,',
-    body: [
-      'Recordamos tu ultima estancia en el ala jardin y ese desayuno tranquilo que preferiste.',
-      'Este verano abrimos una oferta limitada para huespedes recurrentes: dos noches en suite, desayuno incluido, late checkout y credito de spa reservado antes de tu llegada.',
-      'Si quieres hacer una pausa antes de la temporada alta, nuestro equipo puede bloquear tus fechas preferidas y preparar la habitacion como te gusta.',
-    ],
-    cta: 'Reservar mi weekend de verano',
-    signature: 'Equipo de relacion con huespedes de Suites Mine',
-    segmentsTitle: 'Segmentos de audiencia',
-    segments: [
-      { name: 'Huespedes leisure recurrentes', count: '1,240', note: 'Interes en spa, suite y weekend' },
-      { name: 'Familias de verano', count: '860', note: 'Seguimiento vacaciones escolares' },
-      { name: 'Corporate long stay', count: '312', note: 'Viajeros repetidos con factura' },
-      { name: 'Clientes fieles del restaurante', count: '540', note: 'Credito cena y estancia local' },
-    ],
-    socialTitle: 'Plan para redes sociales',
-    socialIntro: 'Despues del envio por email, la misma oferta se convierte en publicaciones para Instagram, Facebook y LinkedIn.',
-    socialPosts: [
-      { channel: 'Instagram', date: '19 jul.', copy: 'Una suite tranquila, late checkout y credito de spa. Los weekends de verano en Suites Mine son para volver.' },
-      { channel: 'Facebook', date: '20 jul.', copy: 'Ya esta abierta nuestra oferta de verano para huespedes recurrentes: desayuno incluido, opciones de suite y spa reservado.' },
-      { channel: 'LinkedIn', date: '22 jul.', copy: 'Campana de reserva directa enfocada en fidelizacion, wellness y ocupacion premium de weekend en Suites Mine.' },
-    ],
-    checklistTitle: 'Antes del envio',
-    checklist: ['Validar disponibilidad para los proximos 4 weekends.', 'Confirmar capacidad del spa.', 'Agregar links UTM de reserva directa.', 'Crear tareas de follow-up para huespedes que hagan click.'],
-  },
-};
-
-function getCopy(language: LanguageCode) {
-  return copyByLanguage[language] ?? copyByLanguage.en!;
-}
+const emptyMailchimp: MailchimpSetup = seed.mailchimp;
 
 export default function AdminMailPage() {
-  const { language } = useI18n();
-  const copy = getCopy(language);
+  const { token } = useAuth();
+  const api = useApi(token);
+  const [campaignId, setCampaignId] = useState(seed.campaigns[0].id);
+  const [setup, setSetup] = useState<MailchimpSetup>(emptyMailchimp);
+  const [subject, setSubject] = useState(seed.campaigns[0].subject);
+  const [preheader, setPreheader] = useState(seed.campaigns[0].preheader);
+  const [body, setBody] = useState(seed.campaigns[0].body);
+  const [status, setStatus] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const selected = useMemo(
+    () => seed.campaigns.find((campaign) => campaign.id === campaignId) ?? seed.campaigns[0],
+    [campaignId],
+  );
+
+  useEffect(() => {
+    setSubject(selected.subject);
+    setPreheader(selected.preheader);
+    setBody(selected.body);
+  }, [selected]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        const response = await api<TenantSettingsResponse>('/tenant/settings');
+        const marketingSetup = response.settings.marketingSetup;
+        if (!cancelled && marketingSetup?.provider === 'MAILCHIMP') {
+          setSetup({
+            ...emptyMailchimp,
+            ...marketingSetup,
+            mailchimp: {
+              ...emptyMailchimp.mailchimp,
+              ...(marketingSetup.mailchimp ?? {}),
+            },
+          });
+        }
+      } catch (err) {
+        if (!cancelled) setStatus(err instanceof Error ? err.message : 'Impossible de charger Mailchimp.');
+      }
+    }
+
+    void loadSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  const payload = useMemo(
+    () => buildMailchimpPayload(selected, setup, subject, preheader, body),
+    [body, preheader, selected, setup, subject],
+  );
+
+  const jsonPayload = useMemo(() => JSON.stringify(payload, null, 2), [payload]);
+
+  const saveMailchimp = async () => {
+    setSaving(true);
+    setStatus(null);
+    try {
+      await api('/tenant/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ marketingSetup: setup }),
+      });
+      setStatus('Configuration Mailchimp sauvegardee en JSON.');
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Sauvegarde impossible.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyJson = async () => {
+    await navigator.clipboard.writeText(jsonPayload);
+    setStatus('Payload JSON copie.');
+  };
 
   return (
     <Guard>
       <AppShell>
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{copy.pageKicker}</p>
-            <h1 className="text-3xl font-semibold">{copy.pageTitle}</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-300">{copy.pageSubtitle}</p>
+            <p className="text-sm uppercase tracking-[0.15em] text-slate-400">Marketing</p>
+            <h1 className="text-3xl font-semibold">Mailing Mailchimp</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-300">
+              Interface prete pour le compte Mailchimp client, avec 5 newsletters en JSON: Marzo, Abril, Junio,
+              Agosto et Septiembre.
+            </p>
           </div>
-          <button className="btn-primary w-fit">{copy.action}</button>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-secondary text-sm" type="button" onClick={copyJson}>
+              Copier JSON
+            </button>
+            <button className="btn-primary text-sm" type="button" onClick={saveMailchimp} disabled={saving}>
+              {saving ? 'Sauvegarde...' : 'Sauver Mailchimp'}
+            </button>
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          {copy.metrics.map((metric) => (
-            <Metric key={metric.label} {...metric} />
-          ))}
-        </div>
+        {status ? <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-200">{status}</div> : null}
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
           <section className="space-y-4">
-            <div className="card p-6">
-              <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{copy.sheetTitle}</p>
-              <BriefRow label={copy.subjectLabel} value={copy.subject} />
-              <BriefRow label={copy.preheaderLabel} value={copy.preheader} />
-              <BriefRow label={copy.audienceLabel} value={copy.audience} />
-              <BriefRow label={copy.goalLabel} value={copy.goal} />
-            </div>
-
-            <div className="card p-6">
-              <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{copy.segmentsTitle}</p>
-              <div className="mt-4 space-y-3">
-                {copy.segments.map((segment) => (
-                  <div key={segment.name} className="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium">{segment.name}</p>
-                      <p className="text-sm text-slate-300">{segment.count}</p>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-400">{segment.note}</p>
-                  </div>
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Campagnes annoncees</p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-5">
+                {seed.campaigns.map((campaign) => (
+                  <button
+                    key={campaign.id}
+                    type="button"
+                    onClick={() => setCampaignId(campaign.id)}
+                    className={`rounded-lg border px-3 py-2 text-sm ${
+                      campaign.id === campaignId
+                        ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-slate-950'
+                        : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    }`}
+                  >
+                    {campaign.month}
+                  </button>
                 ))}
               </div>
             </div>
-          </section>
 
-          <section className="card p-6">
-            <p className="text-sm uppercase tracking-[0.15em] text-slate-400">Email</p>
-            <div className="mt-5 overflow-hidden rounded-xl border border-[#e2d4bd] bg-[#fbf4e8] text-[#1f2933] shadow-2xl shadow-black/20">
-              <div className="border-b border-[#e2d4bd] bg-[#123832] px-6 py-5 text-[#f8ead0]">
-                <p className="text-xs uppercase tracking-[0.24em] text-[#d8b36a]">Suites Mine</p>
-                <p className="mt-1 text-sm">{copy.preheader}</p>
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Configuration Mailchimp</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Field label="Nom compte" value={setup.accountLabel ?? ''} onChange={(accountLabel) => setSetup((prev) => ({ ...prev, accountLabel }))} />
+                <Field label="From name" value={setup.fromName ?? ''} onChange={(fromName) => setSetup((prev) => ({ ...prev, fromName }))} />
+                <Field label="From email" value={setup.fromEmail ?? ''} onChange={(fromEmail) => setSetup((prev) => ({ ...prev, fromEmail }))} />
+                <Field label="Reply-to" value={setup.replyTo ?? ''} onChange={(replyTo) => setSetup((prev) => ({ ...prev, replyTo }))} />
+                <Field label="Server prefix" value={setup.mailchimp.serverPrefix} onChange={(serverPrefix) => setSetup((prev) => ({ ...prev, mailchimp: { ...prev.mailchimp, serverPrefix } }))} placeholder="us21" />
+                <Field label="Audience ID" value={setup.mailchimp.audienceId} onChange={(audienceId) => setSetup((prev) => ({ ...prev, mailchimp: { ...prev.mailchimp, audienceId } }))} />
+                <Field label="API key" value={setup.mailchimp.apiKey} onChange={(apiKey) => setSetup((prev) => ({ ...prev, mailchimp: { ...prev.mailchimp, apiKey } }))} placeholder="a renseigner cote client" />
               </div>
-              <div className="p-8">
-                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6b3d]">{copy.emailKicker}</p>
-                <h2 className="mt-3 max-w-2xl text-4xl font-semibold leading-tight">{copy.emailTitle}</h2>
-                <p className="mt-6 text-base font-semibold">{copy.greeting}</p>
-                <div className="mt-4 space-y-4 text-sm leading-7 text-[#4b5563]">
-                  {copy.body.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                </div>
-                <button className="mt-7 rounded-lg bg-[#123832] px-5 py-3 text-sm font-semibold text-white">
-                  {copy.cta}
-                </button>
-                <p className="mt-8 text-sm text-[#6b5d49]">{copy.signature}</p>
+            </div>
+
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Edition newsletter</p>
+              <div className="mt-4 space-y-3">
+                <Field label="Objet" value={subject} onChange={setSubject} />
+                <Field label="Preheader" value={preheader} onChange={setPreheader} />
+                <label className="block text-sm text-slate-300">
+                  Corps
+                  <textarea
+                    className="mt-2 min-h-56 w-full rounded-lg border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-100 outline-none focus:border-[color:var(--accent)]"
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
+                  />
+                </label>
               </div>
             </div>
           </section>
-        </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="card p-6">
-            <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{copy.socialTitle}</p>
-            <p className="mt-2 text-sm text-slate-300">{copy.socialIntro}</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {copy.socialPosts.map((post) => (
-                <div key={post.channel} className="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold">{post.channel}</p>
-                    <p className="text-xs text-slate-400">{post.date}</p>
+          <section className="space-y-4">
+            <div className="card p-5">
+              <div className="grid gap-3 md:grid-cols-3">
+                <Info label="Fenetre" value={selected.sendWindow} />
+                <Info label="Segment" value={selected.segment} />
+                <Info label="Objectif" value={selected.goal} />
+              </div>
+            </div>
+
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Apercu email</p>
+              <div className="mt-4 overflow-hidden rounded-lg border border-[#d8dee9] bg-[#f8fafc] text-[#111827]">
+                <div className="bg-[#0f766e] px-6 py-5 text-white">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#ccfbf1]">Suites Mine</p>
+                  <p className="mt-2 text-sm">{preheader}</p>
+                </div>
+                <div className="p-6">
+                  <p className="text-xs uppercase tracking-[0.16em] text-[#0f766e]">{selected.month}</p>
+                  <h2 className="mt-2 text-3xl font-semibold leading-tight">{selected.headline}</h2>
+                  <div className="mt-5 space-y-4 text-sm leading-7 text-[#374151]">
+                    {body.split(/\n{2,}/).map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{post.copy}</p>
+                  <button className="mt-6 rounded-lg bg-[#0f766e] px-5 py-3 text-sm font-semibold text-white" type="button">
+                    {selected.cta}
+                  </button>
                 </div>
-              ))}
+              </div>
             </div>
-          </section>
 
-          <section className="card p-6">
-            <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{copy.checklistTitle}</p>
-            <div className="mt-4 space-y-3">
-              {copy.checklist.map((item) => (
-                <div key={item} className="flex gap-3 rounded-xl bg-white/5 p-3 text-sm text-slate-200 ring-1 ring-white/10">
-                  <span className="mt-0.5 h-5 w-5 rounded-full bg-[color:var(--accent)] text-center text-xs font-bold text-[#1f2933]">✓</span>
-                  <span>{item}</span>
-                </div>
-              ))}
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">JSON Mailchimp pret</p>
+              <pre className="mt-4 max-h-[520px] overflow-auto rounded-lg bg-slate-950/70 p-4 text-xs leading-5 text-slate-200">
+                {jsonPayload}
+              </pre>
             </div>
           </section>
         </div>
@@ -290,21 +215,84 @@ export default function AdminMailPage() {
   );
 }
 
-function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
+function buildMailchimpPayload(
+  campaign: NewsletterCampaign,
+  setup: MailchimpSetup,
+  subject: string,
+  preheader: string,
+  body: string,
+) {
+  return {
+    provider: 'MAILCHIMP',
+    status: 'READY_FOR_CLIENT_ACCOUNT',
+    account: setup,
+    campaign: {
+      id: campaign.id,
+      month: campaign.month,
+      sendWindow: campaign.sendWindow,
+      segment: campaign.segment,
+      goal: campaign.goal,
+      type: campaign.mailchimp.campaignType,
+      tags: campaign.mailchimp.tags,
+      settings: {
+        subject_line: subject,
+        preview_text: preheader,
+        title: `${campaign.month} - ${campaign.headline}`,
+        from_name: setup.fromName,
+        reply_to: setup.replyTo || setup.fromEmail,
+        campaign_title: campaign.id,
+      },
+      recipients: {
+        list_id: setup.mailchimp.audienceId,
+        segment_text: campaign.segment,
+      },
+      tracking: {
+        opens: true,
+        html_clicks: true,
+        text_clicks: true,
+        goal_tracking: true,
+        ecomm360: false,
+        google_analytics: campaign.mailchimp.utmCampaign,
+      },
+      content: {
+        headline: campaign.headline,
+        body,
+        cta: campaign.cta,
+        mergeTags: campaign.mailchimp.mergeTags,
+      },
+    },
+  };
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
   return (
-    <div className="card p-5">
-      <p className="text-xs uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-      <p className="mt-1 text-sm text-slate-400">{hint}</p>
-    </div>
+    <label className="block text-sm text-slate-300">
+      {label}
+      <input
+        className="mt-2 w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-[color:var(--accent)]"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+      />
+    </label>
   );
 }
 
-function BriefRow({ label, value }: { label: string; value: string }) {
+function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="mt-4 rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+    <div className="rounded-lg bg-white/5 p-3 ring-1 ring-white/10">
       <p className="text-xs uppercase tracking-[0.14em] text-slate-500">{label}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-100">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-200">{value}</p>
     </div>
   );
 }
