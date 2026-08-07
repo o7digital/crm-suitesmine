@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #10211f;
-  --surface: #17312f;
-  --card: #213b38;
-  --foreground: #fbf7ef;
-  --muted: #b7c8c3;
-  --accent: #d8b36a;
-  --accent-2: #38c6b4;
+  --background: #0c1118;
+  --surface: #121a24;
+  --card: #172231;
+  --foreground: #f6f1e8;
+  --muted: #b9c0c9;
+  --accent: #d6b46f;
+  --accent-2: #8ea0b4;
 }
 
 @theme inline {
@@ -25,9 +25,9 @@
 }
 
 body {
-  background: radial-gradient(90% 80% at 12% 0%, color-mix(in srgb, var(--accent) 24%, transparent), transparent),
-    radial-gradient(80% 70% at 85% 4%, color-mix(in srgb, var(--accent-2) 26%, transparent), transparent),
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 54%, var(--background)), var(--background) 42%),
+  background: radial-gradient(90% 80% at 14% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+    radial-gradient(80% 70% at 88% 2%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 64%, var(--background)), var(--background) 46%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
@@ -40,12 +40,12 @@ a {
 .card {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--card) 95%, transparent),
-    color-mix(in srgb, var(--surface) 96%, transparent)
+    color-mix(in srgb, var(--card) 96%, white 2%),
+    color-mix(in srgb, var(--surface) 96%, black 4%)
   );
-  border: 1px solid color-mix(in srgb, var(--foreground) 7%, transparent);
-  border-radius: 14px;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+  border: 1px solid color-mix(in srgb, var(--foreground) 9%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary {
@@ -79,7 +79,7 @@ a {
 }
 
 .btn-secondary {
-  background: color-mix(in srgb, var(--surface) 82%, white 6%);
+  background: color-mix(in srgb, var(--surface) 86%, white 5%);
   color: var(--foreground);
   border: 1px solid color-mix(in srgb, var(--foreground) 9%, transparent);
   border-radius: 12px;
@@ -87,7 +87,7 @@ a {
 }
 
 .nav-link {
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   padding: 0.5rem 0.75rem;
   transition: background 120ms ease, box-shadow 120ms ease, color 120ms ease;
 }
@@ -95,7 +95,7 @@ a {
 .nav-link-active {
   background: linear-gradient(
     to right,
-    color-mix(in srgb, var(--accent) 34%, transparent),
+    color-mix(in srgb, var(--accent) 26%, transparent),
     color-mix(in srgb, var(--foreground) 3%, transparent)
   );
   color: color-mix(in srgb, var(--accent) 60%, #fff);
@@ -105,16 +105,16 @@ a {
 
 .app-header {
   border-color: color-mix(in srgb, var(--foreground) 6%, transparent);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: color-mix(in srgb, #101821 92%, transparent);
 }
 
 .app-menu {
   border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
-  background: color-mix(in srgb, var(--surface) 96%, black 4%);
+  background: color-mix(in srgb, #101821 97%, black 3%);
 }
 
 .brand-mark {
-  background: linear-gradient(135deg, #f0d89f, var(--accent), color-mix(in srgb, var(--accent-2) 36%, #fff));
+  background: linear-gradient(135deg, #f1dfb4, var(--accent), #9ca8b7);
   color: #21170c;
 }
 

@@ -65,13 +65,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (themeMode === 'day') {
       root.style.colorScheme = 'light';
       root.dataset.themeMode = 'day';
-      setVar('--background', '#dbeafe');
-      setVar('--surface', '#f8fbff');
+      setVar('--background', '#eef1f4');
+      setVar('--surface', '#fbfaf7');
       setVar('--card', '#ffffff');
-      setVar('--foreground', '#0b1220');
-      setVar('--muted', '#334155');
-      setVar('--accent', branding.accentColor || '#2563eb');
-      setVar('--accent-2', branding.accentColor2 || '#0ea5e9');
+      setVar('--foreground', '#141922');
+      setVar('--muted', '#4c5563');
+      setVar('--accent', branding.accentColor || '#b9924b');
+      setVar('--accent-2', branding.accentColor2 || '#66758a');
       return;
     }
 
