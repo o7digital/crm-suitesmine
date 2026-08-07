@@ -106,10 +106,10 @@ export default function AdminMailPage() {
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.15em] text-slate-400">Marketing</p>
-            <h1 className="text-3xl font-semibold">Mailing Mailchimp</h1>
+            <h1 className="text-3xl font-semibold">Newsletter Suites Mine</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-300">
-              Interface prete pour le compte Mailchimp client, avec 5 newsletters en JSON: Marzo, Abril, Junio,
-              Agosto et Septiembre.
+              Design newsletter client, inspire du site Suites Mine: apart-hotel a deux rues del Angel,
+              hospitalite premium, CDMX, terrasse, jacuzzi et suites spacieuses.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -124,29 +124,74 @@ export default function AdminMailPage() {
 
         {status ? <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-200">{status}</div> : null}
 
-        <div className="grid items-start gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-          <section className="space-y-4 xl:sticky xl:top-24">
+        <section className="card mb-6 p-5">
+          <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Campagnes newsletter</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {seed.campaigns.map((campaign) => (
+              <button
+                key={campaign.id}
+                type="button"
+                onClick={() => setCampaignId(campaign.id)}
+                className={`rounded-lg border px-5 py-3 text-sm font-semibold ${
+                  campaign.id === campaignId
+                    ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-slate-950'
+                    : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                }`}
+              >
+                {campaign.month}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="min-w-0">
             <div className="card p-5">
-              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Campagnes annoncees</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {seed.campaigns.map((campaign) => (
-                  <button
-                    key={campaign.id}
-                    type="button"
-                    onClick={() => setCampaignId(campaign.id)}
-                    className={`min-w-24 rounded-lg border px-4 py-2 text-sm ${
-                      campaign.id === campaignId
-                        ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-slate-950'
-                        : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                    }`}
-                  >
-                    {campaign.month}
-                  </button>
-                ))}
+              <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Design email</p>
+                  <h2 className="mt-1 text-xl font-semibold text-slate-100">{selected.headline}</h2>
+                </div>
+                <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">{selected.sendWindow}</p>
+              </div>
+              <NewsletterPreview campaign={selected} setup={setup} subject={subject} preheader={preheader} body={body} />
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Brief campagne</p>
+              <div className="mt-4 grid gap-3">
+                <Info label="Fenetre" value={selected.sendWindow} />
+                <Info label="Segment" value={selected.segment} />
+                <Info label="Objectif" value={selected.goal} />
               </div>
             </div>
 
             <div className="card p-5">
+              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Edition rapide</p>
+              <div className="mt-4 space-y-3">
+                <Field label="Objet" value={subject} onChange={setSubject} />
+                <Field label="Preheader" value={preheader} onChange={setPreheader} />
+                <label className="block text-sm text-slate-300">
+                  Corps
+                  <textarea
+                    className="mt-2 min-h-64 w-full rounded-lg border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-100 outline-none focus:border-[color:var(--accent)]"
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <details className="card mt-6 p-5">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-200">
+            Setup Mailchimp et JSON technique
+          </summary>
+          <div className="mt-5 grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+            <div>
               <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Configuration Mailchimp</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Field label="Nom compte" value={setup.accountLabel ?? ''} onChange={(accountLabel) => setSetup((prev) => ({ ...prev, accountLabel }))} />
@@ -158,46 +203,14 @@ export default function AdminMailPage() {
                 <Field label="API key" value={setup.mailchimp.apiKey} onChange={(apiKey) => setSetup((prev) => ({ ...prev, mailchimp: { ...prev.mailchimp, apiKey } }))} placeholder="a renseigner cote client" />
               </div>
             </div>
-
-            <div className="card p-5">
-              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Edition newsletter</p>
-              <div className="mt-4 space-y-3">
-                <Field label="Objet" value={subject} onChange={setSubject} />
-                <Field label="Preheader" value={preheader} onChange={setPreheader} />
-                <label className="block text-sm text-slate-300">
-                  Corps
-                  <textarea
-                    className="mt-2 min-h-56 w-full rounded-lg border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-100 outline-none focus:border-[color:var(--accent)]"
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-          </section>
-
-          <section className="min-w-0 space-y-4">
-            <div className="card p-5">
-              <div className="grid gap-3 md:grid-cols-3">
-                <Info label="Fenetre" value={selected.sendWindow} />
-                <Info label="Segment" value={selected.segment} />
-                <Info label="Objectif" value={selected.goal} />
-              </div>
-            </div>
-
-            <div className="card p-5">
-              <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Apercu email premium</p>
-              <NewsletterPreview campaign={selected} setup={setup} subject={subject} preheader={preheader} body={body} />
-            </div>
-
-            <div className="card p-5">
+            <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.15em] text-slate-400">JSON Mailchimp pret</p>
               <pre className="mt-4 max-h-[520px] overflow-auto rounded-lg bg-slate-950/70 p-4 text-xs leading-5 text-slate-200">
                 {jsonPayload}
               </pre>
             </div>
-          </section>
-        </div>
+          </div>
+        </details>
       </AppShell>
     </Guard>
   );
