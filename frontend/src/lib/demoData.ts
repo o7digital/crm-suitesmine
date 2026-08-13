@@ -114,6 +114,21 @@ export function demoApiResponse(path: string, init?: RequestInit): unknown {
   if (method === 'POST' && cleanPath === '/tenant/newsletter/mailchimp/draft') {
     return { ok: true, campaignId: 'demo-campaign', status: 'save', editUrl: null };
   }
+  if (method === 'GET' && cleanPath === '/tenant/social/buffer/channels') {
+    return {
+      ok: true,
+      organization: { id: 'demo-buffer-org', name: 'Suites Mine' },
+      organizations: [{ id: 'demo-buffer-org', name: 'Suites Mine' }],
+      channels: [
+        { id: 'demo-instagram', name: 'suitesmine', displayName: '@suitesmine', service: 'instagram', isQueuePaused: false },
+        { id: 'demo-facebook', name: 'Suites Mine', displayName: 'Suites Mine', service: 'facebook', isQueuePaused: false },
+        { id: 'demo-linkedin', name: 'Suites Mine', displayName: 'Suites Mine', service: 'linkedin', isQueuePaused: false },
+      ],
+    };
+  }
+  if (method === 'POST' && cleanPath === '/tenant/social/buffer/post') {
+    return { created: [{ channelId: 'demo-instagram' }], failed: [] };
+  }
   if (method !== 'GET') return { ok: true };
 
   if (cleanPath === '/dashboard') {
