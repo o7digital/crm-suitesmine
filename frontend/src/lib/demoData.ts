@@ -108,6 +108,12 @@ export const demoTasks = [
 export function demoApiResponse(path: string, init?: RequestInit): unknown {
   const cleanPath = path.split('?')[0];
   const method = (init?.method || 'GET').toUpperCase();
+  if (method === 'POST' && cleanPath === '/tenant/newsletter/mailchimp/test') {
+    return { ok: true, healthStatus: 'Mode démonstration connecté' };
+  }
+  if (method === 'POST' && cleanPath === '/tenant/newsletter/mailchimp/draft') {
+    return { ok: true, campaignId: 'demo-campaign', status: 'save', editUrl: null };
+  }
   if (method !== 'GET') return { ok: true };
 
   if (cleanPath === '/dashboard') {
