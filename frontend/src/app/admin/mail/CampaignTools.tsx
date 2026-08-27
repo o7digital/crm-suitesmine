@@ -29,7 +29,6 @@ export type BufferChannel = {
   avatar?: string | null;
   isQueuePaused?: boolean;
 };
-
 type ApiClient = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 
 const months = ['Todos', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -186,18 +185,22 @@ export function BufferStudioModal({
   api,
   initialConfig,
   initialEvent,
+  events,
   onPersistConfig,
   onClose,
 }: {
   api: ApiClient;
   initialConfig: BufferConfig;
   initialEvent?: AnnualEvent | null;
+  events: AnnualEvent[];
   onPersistConfig: (config: BufferConfig) => Promise<void>;
   onClose: () => void;
 }) {
   const [config, setConfig] = useState(initialConfig);
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState(initialEvent?.id || '');
+  const [previewMonth, setPreviewMonth] = useState(initialEvent?.month || 'Todos');
   const [text, setText] = useState(() => initialEvent ? socialTextForEvent(initialEvent) : 'Una pausa en el corazón de CDMX te espera en Suites Mine. ✨\n\nReserva directo: https://www.suitesmine.com/');
   const [imageUrl, setImageUrl] = useState(initialEvent?.imageUrl || '');
   const [mode, setMode] = useState<'queue' | 'custom'>('queue');
@@ -248,6 +251,16 @@ export function BufferStudioModal({
     } finally {
       setBusy(null);
     }
+  };
+
+  const previewEvents = useMemo(
+    () => events.filter((event) => previewMonth === 'Todos' || event.month === previewMonth),
+    [events, previewMonth],
+  );
+  const selectEvent = (event: AnnualEvent) => {
+    setSelectedEventId(event.id);
+    setText(socialTextForEvent(event));
+    setImageUrl(event.imageUrl || event.posterUrl || '');
   };
 
   return (
@@ -303,6 +316,44 @@ export function BufferStudioModal({
 
           <main className="space-y-5 p-6 sm:p-8">
             {notice ? <div className={`rounded-xl border p-3 text-sm ${notice.tone === 'ok' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border-red-400/20 bg-red-400/10 text-red-100'}`}>{notice.text}</div> : null}
+            <section>
+              <p className="text-xs uppercase tracking-[0.18em] text-[#efd083]">Posts préparés dans le CRM</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {months.map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => setPreviewMonth(month)}
+                    className={`rounded-full px-3 py-2 text-xs font-semibold ${previewMonth === month ? 'bg-[#dfb85f] text-[#17231e]' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}
+                  >
+                    {month}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+                {previewEvents.map((event) => (
+                  <button
+                    key={`${event.month}-${event.id}`}
+                    type="button"
+                    onClick={() => selectEvent(event)}
+                    className={`grid w-full grid-cols-[72px_1fr] overflow-hidden rounded-2xl border text-left transition ${selectedEventId === event.id ? 'border-[#dfb85f] bg-[#dfb85f]/10' : 'border-white/10 bg-black/15 hover:bg-white/[0.05]'}`}
+                  >
+                    <span className="h-full min-h-24 bg-[#20382f]">
+                      {event.imageUrl || event.posterUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={event.imageUrl || event.posterUrl} alt="" className="h-full w-full object-cover" />
+                      ) : null}
+                    </span>
+                    <span className="min-w-0 p-3">
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#efd083]">{event.month} · {event.date}</span>
+                      <span className="mt-1 block truncate text-sm font-semibold text-white">{event.title}</span>
+                      <span className="mt-1 block truncate text-xs text-slate-400">🔗 {event.url}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-slate-500">Sélectionne un événement : le CRM récupère son texte, son affiche et son lien officiel pour construire le preview avant l’envoi vers Buffer.</p>
+            </section>
             <label className="block text-sm text-slate-300">
               Texte du post
               <textarea value={text} onChange={(event) => setText(event.target.value)} rows={9} maxLength={5000} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/20 p-4 text-base leading-7 outline-none focus:border-sky-400" />
@@ -313,8 +364,14 @@ export function BufferStudioModal({
               <input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://…/image.jpg" className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none focus:border-sky-400" />
             </label>
             {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt="Aperçu du post" className="max-h-64 w-full rounded-2xl border border-white/10 object-cover" />
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white text-slate-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="Aperçu du post" className="max-h-72 w-full object-cover" />
+                <div className="p-4">
+                  <p className="whitespace-pre-line text-sm leading-6">{text}</p>
+                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Aperçu avant envoi à Buffer</p>
+                </div>
+              </div>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setMode('queue')} className={`rounded-xl border p-4 text-left ${mode === 'queue' ? 'border-[#dfb85f] bg-[#dfb85f]/10' : 'border-white/10 bg-white/[0.03]'}`}>
@@ -332,6 +389,7 @@ export function BufferStudioModal({
             <button type="button" onClick={schedule} disabled={busy !== null || !channels.length || !selectedChannelIds.length || !text.trim() || (mode === 'custom' && !dueAt)} className="btn-primary w-full text-sm">
               {busy === 'post' ? 'Programmation…' : mode === 'queue' ? 'Ajouter aux files Buffer' : 'Programmer les posts'}
             </button>
+
           </main>
         </div>
       </div>

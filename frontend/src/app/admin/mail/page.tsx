@@ -290,6 +290,7 @@ export default function AdminMailPage() {
             api={api}
             initialConfig={setup.buffer}
             initialEvent={socialEvent}
+            events={annualEvents}
             onPersistConfig={persistBufferConfig}
             onClose={() => { setBufferOpen(false); setSocialEvent(null); }}
           />
