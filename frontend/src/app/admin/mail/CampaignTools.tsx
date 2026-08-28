@@ -398,7 +398,7 @@ export function BufferStudioModal({
 }
 
 function socialTextForEvent(event: AnnualEvent) {
-  return `${event.title} arrive à CDMX ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\nFaites de Suites Mine votre point de départ à deux rues de l’Ángel de la Independencia.\n\nInfos événement : ${event.url}\nRéserver : https://www.suitesmine.com/`;
+  return `${event.title} llega a CDMX ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\nHaz de Suites Mine tu punto de partida, a solo dos calles del Ángel de la Independencia.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
 }
 
 function featuredEventSort(left: AnnualEvent, right: AnnualEvent) {
