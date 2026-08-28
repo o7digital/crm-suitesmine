@@ -133,12 +133,12 @@
       "goal": "Convertir estancias de octubre alrededor de conciertos, danza y espectáculos familiares.",
       "status": "READY",
       "lastVerified": "2026-08-13",
-      "subject": "Octubre en CDMX: Motorama, Amadeus, ballet y grandes conciertos",
-      "preheader": "Ocho planes de música, danza y espectáculo para vivir la ciudad desde Reforma.",
-      "headline": "Octubre se vive en grande",
+      "subject": "Octubre en CDMX: Formula 1 y grandes conciertos",
+      "preheader": "El México GP, Pablo Alborán, Hombres G y más planes para vivir la ciudad desde Reforma.",
+      "headline": "Octubre acelera en Ciudad de México",
       "eyebrow": "Agenda Suites Mine · Octubre 2026",
       "heroImage": "https://www.suitesmine.com/assets/uploads/2024/09/escalinatas-jacuzzi-370x167.webp",
-      "body": "Hola {{firstName}},\n\nOctubre reúne algunas de las noches más variadas del año en Ciudad de México: Motorama abre el mes, Amadeus cobra vida con orquesta y coro, la Compañía Nacional de Danza presenta Lago de los Cisnes y Hombres G vuelve al Auditorio Nacional. También hay opciones familiares como Monster Jam y grandes citas con Álvaro Díaz, la Sonora Santanera, Romeo Santos y Prince Royce.\n\nDesde Suites Mine puedes descansar junto a Reforma y organizar cada salida con calma. Consulta siempre horarios y disponibilidad en las fuentes oficiales enlazadas antes de comprar.\n\nElige tu evento y nosotros te ayudamos a preparar la estancia.",
+      "body": "Hola {{firstName}},\n\nOctubre reúne algunas de las citas más esperadas del año en Ciudad de México. El Formula 1 Gran Premio de la Ciudad de México toma el Autódromo Hermanos Rodríguez del 30 de octubre al 1 de noviembre. La agenda musical suma a Pablo Alborán, Motorama, Álvaro Díaz, Hombres G, la Sonora Santanera, Romeo Santos y Prince Royce, además de Amadeus Live, ballet y Monster Jam.\n\nDesde Suites Mine puedes descansar junto a Reforma y organizar cada salida con calma. Consulta siempre horarios y disponibilidad en las fuentes oficiales enlazadas antes de comprar.\n\nElige tu evento y nosotros te ayudamos a preparar la estancia.",
       "cta": "Reservar mi estancia de octubre",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
       "highlights": ["Cerca de Reforma", "Suites amplias con cocina", "Terraza, bar y jacuzzi"],
@@ -229,7 +229,7 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "octubre", "conciertos", "danza", "familia"],
+        "tags": ["newsletter", "octubre", "formula-1", "mexico-gp", "conciertos"],
         "mergeTags": ["firstName", "fullName", "company", "email"],
         "utmCampaign": "newsletter_octubre_2026_espectaculos_cdmx"
       }

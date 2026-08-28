@@ -294,6 +294,19 @@
     "posterUrl": "https://www.ocesa.com.mx/todos-los-eventos/%C3%A1lvaro-d%C3%ADaz-boletos-ae1512481"
   },
   {
+    "id": "pablo-alboran-octubre",
+    "month": "Octubre",
+    "sortDate": "2026-10-08",
+    "category": "Concierto",
+    "title": "Pablo Alborán · Global Tour KM0",
+    "date": "8 y 9 de octubre · 20:30",
+    "venue": "Auditorio Nacional",
+    "description": "Pablo Alborán regresa a México con KM0, una gira que combina baladas, flamenco y nuevas sonoridades.",
+    "url": "https://www.auditorio.com.mx/cartelera/2026/octubre/pablo-albor%C3%A1n.html",
+    "sourceLabel": "Auditorio Nacional",
+    "posterUrl": "https://www.auditorio.com.mx/cartelera/2026/octubre/pablo-albor%C3%A1n.html"
+  },
+  {
     "id": "lago-cisnes-octubre",
     "month": "Octubre",
     "sortDate": "2026-10-10",
@@ -348,6 +361,20 @@
     "sourceLabel": "OCESA",
     "imageUrl": "https://dynamicmedia.livenationinternational.com/b/k/h/e5895869-bf60-4bc4-b666-c5dd5c571477.jpg",
     "posterUrl": "https://www.ocesa.com.mx/todos-los-eventos/romeo-santos-y-prince-royce-boletos-ae1658773"
+  },
+  {
+    "id": "formula-1-mexico-2026",
+    "month": "Octubre",
+    "sortDate": "2026-10-30",
+    "category": "Deporte",
+    "title": "Formula 1 · Gran Premio de la Ciudad de México",
+    "date": "30 de octubre al 1 de noviembre",
+    "venue": "Autódromo Hermanos Rodríguez",
+    "description": "Tres días de prácticas, clasificación y carrera para la edición 2026 del México GP.",
+    "url": "https://www.mexicogp.mx/",
+    "sourceLabel": "Mexico GP",
+    "imageUrl": "https://mexicogp.s3.us-west-2.amazonaws.com/wp-content/uploads/2025/06/10030800/nota-10-junio-02.jpg",
+    "posterUrl": "https://www.mexicogp.mx/"
   },
   {
     "id": "lila-downs-noviembre",

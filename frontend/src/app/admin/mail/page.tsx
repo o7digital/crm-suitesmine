@@ -1319,12 +1319,30 @@ function mergeCampaignsWithSeed(value: unknown): NewsletterCampaign[] {
   const saved = hydrateCampaigns(value);
   return defaults.map((template) => {
     const draft = saved.find((campaign) => campaign.id === template.id);
-    if (!draft) return template;
-    return {
+    const merged = draft ? {
       ...template,
       ...draft,
       events: draft.events?.length ? draft.events : template.events,
       mailchimp: { ...template.mailchimp, ...draft.mailchimp },
+    } as NewsletterCampaign : template;
+    const refreshed = merged.month === 'Octubre'
+      ? {
+          ...merged,
+          subject: template.subject,
+          preheader: template.preheader,
+          headline: template.headline,
+          body: template.body,
+          mailchimp: { ...merged.mailchimp, tags: template.mailchimp.tags },
+        }
+      : merged;
+    const requiredEvents = annualEvents.filter(
+      (event) => event.month === refreshed.month && (event.category === 'Concierto' || event.category === 'Deporte'),
+    );
+    const existingIds = new Set(refreshed.events.map((event) => event.id));
+    return {
+      ...refreshed,
+      events: [...refreshed.events, ...requiredEvents.filter((event) => !existingIds.has(event.id))]
+        .sort((left, right) => (left.sortDate || '').localeCompare(right.sortDate || '')),
     } as NewsletterCampaign;
   });
 }
