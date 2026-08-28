@@ -66,7 +66,7 @@ export function EventCatalogModal({
       if (category !== 'Todos' && event.category !== category) return false;
       if (!normalized) return true;
       return `${event.title} ${event.venue} ${event.category}`.toLocaleLowerCase('es-MX').includes(normalized);
-    });
+    }).sort(featuredEventSort);
   }, [category, events, month, query]);
 
   return (
@@ -254,7 +254,7 @@ export function BufferStudioModal({
   };
 
   const previewEvents = useMemo(
-    () => events.filter((event) => previewMonth === 'Todos' || event.month === previewMonth),
+    () => events.filter((event) => previewMonth === 'Todos' || event.month === previewMonth).sort(featuredEventSort),
     [events, previewMonth],
   );
   const selectEvent = (event: AnnualEvent) => {
@@ -399,4 +399,10 @@ export function BufferStudioModal({
 
 function socialTextForEvent(event: AnnualEvent) {
   return `${event.title} arrive à CDMX ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\nFaites de Suites Mine votre point de départ à deux rues de l’Ángel de la Independencia.\n\nInfos événement : ${event.url}\nRéserver : https://www.suitesmine.com/`;
+}
+
+function featuredEventSort(left: AnnualEvent, right: AnnualEvent) {
+  const leftFeatured = left.id === 'formula-1-mexico-2026' ? 0 : 1;
+  const rightFeatured = right.id === 'formula-1-mexico-2026' ? 0 : 1;
+  return leftFeatured - rightFeatured || left.sortDate.localeCompare(right.sortDate);
 }

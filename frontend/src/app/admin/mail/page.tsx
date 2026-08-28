@@ -1342,7 +1342,10 @@ function mergeCampaignsWithSeed(value: unknown): NewsletterCampaign[] {
     return {
       ...refreshed,
       events: [...refreshed.events, ...requiredEvents.filter((event) => !existingIds.has(event.id))]
-        .sort((left, right) => (left.sortDate || '').localeCompare(right.sortDate || '')),
+        .sort((left, right) => {
+          const featured = Number(right.id === 'formula-1-mexico-2026') - Number(left.id === 'formula-1-mexico-2026');
+          return featured || (left.sortDate || '').localeCompare(right.sortDate || '');
+        }),
     } as NewsletterCampaign;
   });
 }
