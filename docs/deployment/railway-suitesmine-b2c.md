@@ -62,3 +62,11 @@ Contrôler les brouillons Buffer sans nouvelle création de masse, aucun envoi M
 ## Informations à relever avant bascule
 
 IDs Railway projet/environnement/service, URL publique API, référence Postgres, URL preview autorisée, application Clerk dédiée et contrat issuer/audience, inventaire de la source des données Suites Mine, SQL de migration ou baseline validé. Tant que ces éléments ne sont pas établis, conserver le site actuel et ne pas déclarer l'intégration opérationnelle.
+
+## Preview Clerk — 10 septembre 2026
+
+L'application Clerk dédiée de développement utilise l'issuer `https://rich-adder-4331.clerk.accounts.dev`. La paire de clés a été vérifiée contre le JWKS ; les secrets sont enregistrés dans les variables Vercel Preview, jamais dans ce document. Les claims de session demandés sont `aud=suitesmine-crm-staging` et `email={{user.primary_email_address}}` ; une session réelle doit encore les valider.
+
+Pour la preview CLI, lancer `vercel deploy` depuis **frontend/**, lié au projet Vercel Suites Mine. `frontend/vercel.json` déclare explicitement Next.js. Le déploiement historique depuis la racine avec les routes legacy renvoyait 404 sur les routes dynamiques de connexion ; ne pas promouvoir cette configuration sans recette. Les variables Preview communes sont nécessaires aux déploiements CLI sans métadonnées de branche.
+
+Railway : le build Docker du commit 95e40cea réussit, mais le healthcheck du déploiement observé a échoué. L'initialisation de la base et la validation de sa destination restent préalables à la recette complète. Les modifications issuer/CORS ont été enregistrées avec `--skip-deploys` ; elles nécessitent un prochain déploiement API pour prendre effet.
