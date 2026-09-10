@@ -9,22 +9,12 @@ async function bootstrap() {
     .split(',')
     .map((x) => x.trim())
     .filter(Boolean);
-  const allowlist = new Set<string>(['http://localhost:3000', 'https://crm-suites-o7.vercel.app', ...explicitOrigins]);
+  const allowlist = new Set<string>(explicitOrigins);
+  if (process.env.NODE_ENV !== 'production') allowlist.add('http://localhost:3000');
   app.enableCors({
     origin(origin, callback) {
-      // Allow non-browser and same-origin requests.
-      if (!origin) return callback(null, true);
-      if (allowlist.has(origin)) return callback(null, true);
-      try {
-        const url = new URL(origin);
-        // Allow Vercel preview deployments for this project.
-        if (url.hostname.endsWith('.vercel.app') && url.hostname.startsWith('crm-suites-o7')) {
-          return callback(null, true);
-        }
-      } catch {
-        // ignore invalid origin
-      }
-      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      if (!origin || allowlist.has(origin)) return callback(null, true);
+      return callback(new Error('CORS origin not allowed'), false);
     },
     credentials: true,
   });
@@ -42,6 +32,7 @@ async function bootstrap() {
     }),
   );
 
+  if (process.env.RUN_LEGACY_SCHEMA_UPGRADER === 'true') {
   try {
     await app.get(SchemaUpgraderService).run();
     // eslint-disable-next-line no-console
@@ -49,6 +40,8 @@ async function bootstrap() {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.log('[db] schema upgrade skipped', err instanceof Error ? err.message : err);
+  }
+
   }
 
   const port = process.env.PORT ?? 4000;

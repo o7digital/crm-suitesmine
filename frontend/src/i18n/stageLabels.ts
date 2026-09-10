@@ -15,12 +15,6 @@ const CORE_STAGE_LABELS = {
     'TRANSFER PAYMENT': 'TRANSFER PAYMENT',
     'Transfer Scheduled': 'Transfer Scheduled',
     Paid: 'Paid',
-    'Newsletter capture': 'Newsletter capture',
-    'Segmented guest': 'Segmented guest',
-    'Campaign planned': 'Campaign planned',
-    'Stay follow-up': 'Stay follow-up',
-    'Return booked': 'Return booked',
-    'No response': 'No response',
   },
   fr: {
     Lead: 'Lead',
@@ -35,12 +29,6 @@ const CORE_STAGE_LABELS = {
     'TRANSFER PAYMENT': 'Transfert paiement',
     'Transfer Scheduled': 'Transfert planifie',
     Paid: 'Paye',
-    'Newsletter capture': 'Capture newsletter',
-    'Segmented guest': 'Client segmente',
-    'Campaign planned': 'Campagne planifiee',
-    'Stay follow-up': 'Suivi sejour',
-    'Return booked': 'Retour reserve',
-    'No response': 'Sans reponse',
   },
   es: {
     Lead: 'Lead',
@@ -55,12 +43,6 @@ const CORE_STAGE_LABELS = {
     'TRANSFER PAYMENT': 'Transferencia',
     'Transfer Scheduled': 'Transferencia programada',
     Paid: 'Pagado',
-    'Newsletter capture': 'Captura newsletter',
-    'Segmented guest': 'Huesped segmentado',
-    'Campaign planned': 'Campana planeada',
-    'Stay follow-up': 'Seguimiento estancia',
-    'Return booked': 'Retorno reservado',
-    'No response': 'Sin respuesta',
   },
 } as const;
 

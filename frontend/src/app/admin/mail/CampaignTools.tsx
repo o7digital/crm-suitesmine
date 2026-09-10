@@ -20,7 +20,7 @@ export type AnnualEvent = CampaignEvent & {
   sortDate: string;
 };
 
-export type BufferConfig = { apiKey: string; organizationId: string };
+export type BufferConfig = { apiKey: string; apiKeyConfigured?: boolean; organizationId: string };
 export type BufferChannel = {
   id: string;
   name: string;
@@ -31,7 +31,7 @@ export type BufferChannel = {
 };
 type ApiClient = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 
-const months = ['Todos', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
 
 export function EventCatalogModal({
   events,
@@ -52,6 +52,7 @@ export function EventCatalogModal({
   onSocial: (event: AnnualEvent) => void;
   onClose: () => void;
 }) {
+  const months = ['Todos', ...new Set(events.map(event => event.month))];
   const [month, setMonth] = useState('Todos');
   const [category, setCategory] = useState('Todos');
   const [query, setQuery] = useState('');
@@ -74,7 +75,7 @@ export function EventCatalogModal({
       <header className="sticky top-0 z-10 border-b border-white/10 bg-[#12211c]/95 px-5 py-4 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[#dfb85f]">Agenda vérifié · CDMX</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#dfb85f]">Catalogue de contenus</p>
             <h2 className="mt-1 text-2xl font-semibold">Catalogue événements · août à décembre 2026</h2>
             <p className="mt-1 text-sm text-slate-400">{events.length} idées avec date, lieu, visuel disponible et source officielle.</p>
           </div>
@@ -185,6 +186,8 @@ export function BufferStudioModal({
   api,
   initialConfig,
   initialEvent,
+  websiteUrl,
+  brandName,
   events,
   onPersistConfig,
   onClose,
@@ -192,18 +195,21 @@ export function BufferStudioModal({
   api: ApiClient;
   initialConfig: BufferConfig;
   initialEvent?: AnnualEvent | null;
+  websiteUrl: string;
+  brandName: string;
   events: AnnualEvent[];
   onPersistConfig: (config: BufferConfig) => Promise<void>;
   onClose: () => void;
 }) {
+  const months = ['Todos', ...new Set(events.map(event => event.month))];
   const [config, setConfig] = useState(initialConfig);
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
   const [selectedEventId, setSelectedEventId] = useState(initialEvent?.id || '');
   const [previewMonth, setPreviewMonth] = useState(initialEvent?.month || 'Todos');
-  const [text, setText] = useState(() => initialEvent ? socialTextForEvent(initialEvent) : 'Una pausa en el corazón de CDMX te espera en Suites Mine. ✨\n\nReserva directo: https://www.suitesmine.com/');
+  const [text, setText] = useState(() => initialEvent ? socialTextForEvent(initialEvent, websiteUrl, brandName) : '');
   const [imageUrl, setImageUrl] = useState(initialEvent?.imageUrl || '');
-  const [mode, setMode] = useState<'queue' | 'custom'>('queue');
+  const [mode, setMode] = useState<'queue' | 'custom'>('custom');
   const [dueAt, setDueAt] = useState('');
   const [busy, setBusy] = useState<'connect' | 'post' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
@@ -239,12 +245,14 @@ export function BufferStudioModal({
           imageUrl: imageUrl.trim() || undefined,
           channelIds: selectedChannelIds,
           mode,
-          dueAt: mode === 'custom' && dueAt ? new Date(dueAt).toISOString() : undefined,
+          saveToDraft: true,
+          dueAt: mode === 'custom' && dueAt ? new Date(`${dueAt}:00-06:00`).toISOString() : undefined,
         }),
       });
+      setSelectedChannelIds(result.failed.map(item => item.channelId));
       setNotice({
         tone: result.failed.length ? 'error' : 'ok',
-        text: `${result.created.length} post(s) créé(s) dans Buffer${result.failed.length ? ` · ${result.failed.length} échec(s)` : ''}.`,
+        text: `${result.created.length} brouillon(s) créé(s) dans Buffer${result.failed.length ? ` · ${result.failed.length} échec(s)` : ''}.`,
       });
     } catch (error) {
       setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Programmation Buffer impossible.' });
@@ -259,7 +267,7 @@ export function BufferStudioModal({
   );
   const selectEvent = (event: AnnualEvent) => {
     setSelectedEventId(event.id);
-    setText(socialTextForEvent(event));
+    setText(socialTextForEvent(event, websiteUrl, brandName));
     setImageUrl(event.imageUrl || event.posterUrl || '');
   };
 
@@ -269,7 +277,7 @@ export function BufferStudioModal({
         <header className="flex items-center justify-between border-b border-white/10 px-6 py-5">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-sky-300">Réseaux sociaux</p>
-            <h2 className="mt-1 text-2xl font-semibold">Programmer avec Buffer</h2>
+            <h2 className="mt-1 text-2xl font-semibold">Préparer des brouillons Buffer</h2>
           </div>
           <button type="button" className="btn-secondary text-sm" onClick={onClose}>Fermer</button>
         </header>
@@ -287,7 +295,7 @@ export function BufferStudioModal({
               />
               <p className="mt-2 text-xs leading-5 text-slate-500">La clé est enregistrée dans la configuration du tenant ; les publications sont envoyées à Buffer par l’API du CRM.</p>
             </div>
-            <button type="button" onClick={connect} disabled={busy !== null || !config.apiKey.trim()} className="btn-primary w-full text-sm">
+            <button type="button" onClick={connect} disabled={busy !== null || (!config.apiKey.trim() && !config.apiKeyConfigured)} className="btn-primary w-full text-sm">
               {busy === 'connect' ? 'Connexion…' : channels.length ? 'Actualiser les réseaux' : 'Connecter Buffer'}
             </button>
             {channels.length ? (
@@ -315,6 +323,7 @@ export function BufferStudioModal({
           </aside>
 
           <main className="space-y-5 p-6 sm:p-8">
+            <p className="text-sm text-sky-200">Les posts restent en brouillon. Aucune publication automatique. Les dates sont en heure de Mexico.</p>
             {notice ? <div className={`rounded-xl border p-3 text-sm ${notice.tone === 'ok' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border-red-400/20 bg-red-400/10 text-red-100'}`}>{notice.text}</div> : null}
             <section>
               <p className="text-xs uppercase tracking-[0.18em] text-[#efd083]">Posts préparés dans le CRM</p>
@@ -375,8 +384,8 @@ export function BufferStudioModal({
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setMode('queue')} className={`rounded-xl border p-4 text-left ${mode === 'queue' ? 'border-[#dfb85f] bg-[#dfb85f]/10' : 'border-white/10 bg-white/[0.03]'}`}>
-                <strong className="text-sm">Prochain créneau</strong>
-                <span className="mt-1 block text-xs text-slate-400">Buffer choisit le prochain horaire de la file.</span>
+                <strong className="text-sm">Sans date</strong>
+                <span className="mt-1 block text-xs text-slate-400">Conserver le brouillon sans date.</span>
               </button>
               <button type="button" onClick={() => setMode('custom')} className={`rounded-xl border p-4 text-left ${mode === 'custom' ? 'border-[#dfb85f] bg-[#dfb85f]/10' : 'border-white/10 bg-white/[0.03]'}`}>
                 <strong className="text-sm">Date précise</strong>
@@ -387,7 +396,7 @@ export function BufferStudioModal({
               <label className="block text-sm text-slate-300">Date et heure<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} className="mt-2 block w-full rounded-xl border border-white/10 bg-[#1d332b] px-4 py-3 outline-none focus:border-sky-400" /></label>
             ) : null}
             <button type="button" onClick={schedule} disabled={busy !== null || !channels.length || !selectedChannelIds.length || !text.trim() || (mode === 'custom' && !dueAt)} className="btn-primary w-full text-sm">
-              {busy === 'post' ? 'Programmation…' : mode === 'queue' ? 'Ajouter aux files Buffer' : 'Programmer les posts'}
+              {busy === 'post' ? 'Programmation…' : mode === 'queue' ? 'Créer les brouillons' : 'Créer les brouillons datés'}
             </button>
 
           </main>
@@ -397,8 +406,8 @@ export function BufferStudioModal({
   );
 }
 
-function socialTextForEvent(event: AnnualEvent) {
-  return `${event.title} llega a CDMX ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\nHaz de Suites Mine tu punto de partida, a solo dos calles del Ángel de la Independencia.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
+function socialTextForEvent(event: AnnualEvent, websiteUrl: string, brandName: string) {
+  return `${event.title} ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\n${event.description}\n\nInformación oficial: ${event.url}${websiteUrl ? `\n${brandName}: ${websiteUrl}` : ''}`;
 }
 
 function featuredEventSort(left: AnnualEvent, right: AnnualEvent) {

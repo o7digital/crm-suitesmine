@@ -72,6 +72,7 @@ export class AuthService {
   }
 
   async demo() {
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEMO_WORKSPACE !== 'true') throw new UnauthorizedException('Demo workspace is disabled');
     await this.ensureDemoWorkspace();
     const user = await this.prisma.user.findUniqueOrThrow({ where: { email: DEMO_EMAIL } });
     const token = this.signUser(user.id, user.tenantId, user.email);

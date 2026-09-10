@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 const isProtectedRoute = createRouteMatcher([
+  '/',
   '/account(.*)',
   '/admin(.*)',
   '/clients(.*)',
@@ -15,8 +16,8 @@ const isProtectedRoute = createRouteMatcher([
   '/tasks(.*)',
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE !== 'false') {
+export default process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? clerkMiddleware(async (auth, req) => {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
     return NextResponse.next();
   }
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
@@ -26,7 +27,7 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect();
   }
   return NextResponse.next();
-});
+}) : () => NextResponse.next();
 
 export const config = {
   matcher: [

@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const authSource = useRef<'local' | 'clerk' | null>(null);
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   const bootstrapTenant = useCallback(async (accessToken: string, opts?: { ignoreErrors?: boolean }) => {
@@ -298,10 +298,11 @@ export function useAuth() {
 
 export function useApi(token: string | null) {
   return useMemo(() => {
-    const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+    const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
     const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     return async <T = unknown>(path: string, init?: RequestInit): Promise<T> => {
       if (demoMode) {
+        if (path.startsWith('/tenant/newsletter') || path.startsWith('/tenant/social') || (init?.method && init.method !== 'GET')) throw new Error('Mode démonstration : aucune opération réelle disponible.');
         return demoApiResponse(path, init) as T;
       }
 

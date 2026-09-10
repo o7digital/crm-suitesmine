@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 import { readdir } from 'node:fs/promises';
@@ -13,6 +13,18 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('ready')
+  async ready() {
+    try {
+      // Verify both connectivity and the columns required by the new CRM.
+      await this.prisma.$queryRaw`SELECT "closedAt", "boardOrder" FROM "Deal" LIMIT 0`;
+      await this.prisma.$queryRaw`SELECT "id" FROM "DealActivity" LIMIT 0`;
+      return { ok: true };
+    } catch {
+      throw new ServiceUnavailableException('Database schema is not ready');
+    }
   }
 
   @Get('health')

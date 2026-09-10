@@ -1,3 +1,4 @@
+import { IntegrationsModule } from './integrations/integrations.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -26,6 +27,7 @@ import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
+    IntegrationsModule,
     ConfigModule.forRoot({ isGlobal: true }),
     FxModule,
     IaModule,

@@ -7,7 +7,7 @@ import { BrandingProvider } from '../contexts/BrandingContext';
 import { I18nProvider } from '../contexts/I18nContext';
 
 export function Providers({ children }: { children: ReactNode }) {
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   if (!hasClerk) {

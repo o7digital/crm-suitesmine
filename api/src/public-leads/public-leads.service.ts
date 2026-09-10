@@ -19,13 +19,15 @@ export class PublicLeadsService {
   constructor(private prisma: PrismaService) {}
 
   async createO7Lead(payload: PublicLeadPayload) {
-    const ownerEmail = 'olivier.steineur@gmail.com';
+    const ownerEmail = process.env.CLIENT_PUBLIC_LEADS_OWNER_EMAIL;
+    const tenantId = process.env.CLIENT_PUBLIC_LEADS_TENANT_ID;
+    if (!ownerEmail || !tenantId) throw new NotFoundException('Client lead intake is not configured');
     const owner = await this.prisma.user.findUnique({
       where: { email: ownerEmail },
       select: { id: true, tenantId: true },
     });
 
-    if (!owner) {
+    if (!owner || owner.tenantId !== tenantId) {
       throw new NotFoundException('O7 CRM owner not found');
     }
 

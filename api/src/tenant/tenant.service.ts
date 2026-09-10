@@ -1,3 +1,4 @@
+import { transformMarketingSecrets } from './marketing-secrets';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import { Prisma } from '@prisma/client';
@@ -228,6 +229,23 @@ export class TenantService {
       templateHref,
       fieldMappings,
     };
+  }
+
+  private readMarketingSetup(raw: unknown) {
+    return this.sanitizeMarketingSetup(transformMarketingSecrets(raw, false));
+  }
+
+  private publicMarketingSetup(raw: unknown) {
+    const setup = this.readMarketingSetup(raw);
+    if (!setup) return setup;
+    for (const provider of ['smtp', 'mailchimp', 'brevo', 'buffer'] as const) {
+      const config = setup[provider] as Record<string, unknown> | undefined;
+      if (!config) continue;
+      const key = provider === 'smtp' ? 'password' : 'apiKey';
+      config[`${key}Configured`] = Boolean(config[key]);
+      delete config[key];
+    }
+    return setup;
   }
 
   private sanitizeMarketingSetup(raw: unknown): MarketingSetup | null | undefined {
@@ -635,7 +653,7 @@ export class TenantService {
     });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
-    const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+    const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
     const config = this.getMailchimpConfig(setup);
     const ping = await this.mailchimpRequest<{ health_status?: string }>(config, '/ping');
     return {
@@ -654,7 +672,7 @@ export class TenantService {
     });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
-    const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+    const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
     const config = this.getMailchimpConfig(setup);
     const campaign = await this.mailchimpRequest<{ id: string; web_id?: number; status?: string }>(config, '/campaigns', {
       method: 'POST',
@@ -775,7 +793,7 @@ export class TenantService {
       select: { marketingSetup: true },
     });
     if (!tenant) throw new NotFoundException('Tenant not found');
-    const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+    const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
     const workspace = await this.loadBufferWorkspace(setup);
     return {
       ok: true,
@@ -787,15 +805,18 @@ export class TenantService {
 
   async createBufferPost(dto: CreateBufferPostDto, user: RequestUser) {
     await this.ensureAdmin(user);
+    if (dto.saveToDraft === false) throw new BadRequestException('Only Buffer drafts are supported.');
     const tenant = await this.prisma.tenant.findFirst({
       where: { id: user.tenantId },
       select: { marketingSetup: true },
     });
     if (!tenant) throw new NotFoundException('Tenant not found');
-    const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+    const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
     const workspace = await this.loadBufferWorkspace(setup);
     const allowedChannelIds = new Set(workspace.channels.map((channel) => channel.id));
     const channelIds = [...new Set(dto.channelIds.map((id) => id.trim()).filter((id) => allowedChannelIds.has(id)))];
+    if (dto.channelIds.some(id => !allowedChannelIds.has(id.trim()))) throw new BadRequestException('Unknown Buffer channel.');
+    if (!dto.text.trim()) throw new BadRequestException('Post text is required.');
     if (!channelIds.length) throw new BadRequestException('Sélectionnez au moins un réseau Buffer connecté.');
 
     let dueAt = '';
@@ -816,13 +837,17 @@ export class TenantService {
       const assets = dto.imageUrl?.trim()
         ? `assets: [{ image: { url: ${JSON.stringify(dto.imageUrl.trim())} } }]`
         : '';
-      const query = `mutation CreatePost { createPost(input: { text: ${JSON.stringify(dto.text.trim())}, channelId: ${JSON.stringify(channelId)}, schedulingType: automatic, ${scheduling} ${assets} }) { ... on PostActionSuccess { post { id dueAt } } ... on MutationError { message } } }`;
+      const service = workspace.channels.find((channel) => channel.id === channelId)?.service;
+      const metadata = service === 'instagram' ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }' : service === 'facebook' ? 'metadata: { facebook: { type: post } }' : '';
+      const query = `mutation CreatePost { createPost(input: { text: ${JSON.stringify(dto.text.trim())}, channelId: ${JSON.stringify(channelId)}, saveToDraft: true, schedulingType: automatic, ${scheduling} ${assets} ${metadata} }) { ... on PostActionSuccess { post { id dueAt status } } ... on MutationError { message } } }`;
       try {
         const data = await this.bufferRequest<{
-          createPost?: { post?: { id?: string; dueAt?: string | null }; message?: string };
+          createPost?: { post?: { id?: string; dueAt?: string | null; status?: string }; message?: string };
         }>(workspace.config.apiKey, query);
         const result = data.createPost;
         if (!result?.post?.id) throw new Error(result?.message || 'Buffer n’a pas créé le post.');
+        if (result.post.status !== 'draft') throw new Error('Buffer did not confirm draft status. Check the post before retrying.');
+        if (dueAt && result.post.dueAt !== dueAt) throw new Error('Buffer did not confirm the requested date. Check the draft before retrying.');
         results.push({ channelId, postId: result.post.id, dueAt: result.post.dueAt });
       } catch (error) {
         failed.push({ channelId, message: error instanceof Error ? error.message : 'Échec Buffer' });
@@ -956,7 +981,10 @@ export class TenantService {
         ? (currency as (typeof this.crmDisplayCurrencies)[number])
         : 'USD';
       const contractSetup = this.sanitizeContractSetup(tenant.contractSetup);
-      const marketingSetup = this.sanitizeMarketingSetup(tenant.marketingSetup);
+      const role = await this.getUserRole(user);
+      const marketingSetup = role === 'OWNER' || role === 'ADMIN'
+        ? this.publicMarketingSetup(tenant.marketingSetup)
+        : null;
       return {
         tenantId: tenant.id,
         tenantName: tenant.name,
@@ -991,7 +1019,29 @@ export class TenantService {
       ? String(dto.crmDisplayCurrency).toUpperCase()
       : undefined;
     const nextContractSetup = this.sanitizeContractSetup(dto.contractSetup);
-    const nextMarketingSetup = this.sanitizeMarketingSetup(dto.marketingSetup);
+    let nextMarketingSetup = this.sanitizeMarketingSetup(dto.marketingSetup);
+    if (nextMarketingSetup) {
+      const current = await this.prisma.tenant.findFirst({
+        where: { id: user.tenantId },
+        select: { marketingSetup: true },
+      });
+      const saved = this.readMarketingSetup(current?.marketingSetup);
+      // Blank or omitted credentials keep the stored value. Explicit null clears
+      // a provider, and marketingSetup: null clears the complete configuration.
+      const raw = dto.marketingSetup as Record<string, unknown>;
+      for (const provider of ['smtp', 'mailchimp', 'brevo', 'buffer'] as const) {
+        if (raw[provider] === null) continue;
+        const key = provider === 'smtp' ? 'password' : 'apiKey';
+        const oldConfig = saved?.[provider] as Record<string, unknown> | undefined;
+        const nextConfig = nextMarketingSetup[provider] as Record<string, unknown> | undefined;
+        if (oldConfig?.[key] && !nextConfig?.[key]) {
+          nextMarketingSetup = {
+            ...nextMarketingSetup,
+            [provider]: { ...(nextConfig ?? oldConfig), [key]: oldConfig[key] },
+          };
+        }
+      }
+    }
 
     try {
       const updated = await this.prisma.tenant.update({
@@ -1013,7 +1063,7 @@ export class TenantService {
                 marketingSetup:
                   nextMarketingSetup === null
                     ? Prisma.DbNull
-                    : (nextMarketingSetup as Prisma.InputJsonValue),
+                    : (transformMarketingSecrets(nextMarketingSetup, true) as Prisma.InputJsonValue),
               }
             : {}),
         },
@@ -1037,7 +1087,7 @@ export class TenantService {
         ? (currency as (typeof this.crmDisplayCurrencies)[number])
         : 'USD';
       const contractSetup = this.sanitizeContractSetup(updated.contractSetup);
-      const marketingSetup = this.sanitizeMarketingSetup(updated.marketingSetup);
+      const marketingSetup = this.publicMarketingSetup(updated.marketingSetup);
 
       return {
         tenantId: updated.id,
@@ -1071,7 +1121,7 @@ export class TenantService {
       });
       if (!tenant) throw new NotFoundException('Tenant not found');
 
-      const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+      const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
       const recipient: NewsletterRecipient = {
         email: user.email,
         firstName: String(user.name || '').split(/\s+/).filter(Boolean)[0] || null,
@@ -1113,7 +1163,7 @@ export class TenantService {
       });
       if (!tenant) throw new NotFoundException('Tenant not found');
 
-      const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+      const setup = this.readMarketingSetup(tenant.marketingSetup) ?? null;
       const clients = await this.prisma.client.findMany({
         where: {
           tenantId: user.tenantId,

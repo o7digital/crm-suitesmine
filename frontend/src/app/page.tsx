@@ -1,5 +1,7 @@
 'use client';
 
+import { CommandCenter } from '../components/CommandCenter';
+
 import { useEffect, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { Guard } from '../components/Guard';
@@ -248,6 +250,7 @@ export default function DashboardPage() {
   return (
     <Guard>
       <AppShell>
+      <CommandCenter />
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.15em] text-slate-400">{t('dashboard.section')}</p>
