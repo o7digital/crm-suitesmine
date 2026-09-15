@@ -408,7 +408,14 @@ function socialTextForEvent(event: AnnualEvent) {
 }
 
 function featuredEventSort(left: AnnualEvent, right: AnnualEvent) {
-  const leftFeatured = left.id === 'formula-1-mexico-2026' ? 0 : 1;
-  const rightFeatured = right.id === 'formula-1-mexico-2026' ? 0 : 1;
+  const featuredIds = [
+    'desfile-civico-militar-2026',
+    'grito-independencia-zocalo-2026',
+    'formula-1-mexico-2026',
+  ];
+  const leftIndex = featuredIds.indexOf(left.id);
+  const rightIndex = featuredIds.indexOf(right.id);
+  const leftFeatured = leftIndex === -1 ? featuredIds.length : leftIndex;
+  const rightFeatured = rightIndex === -1 ? featuredIds.length : rightIndex;
   return leftFeatured - rightFeatured || left.sortDate.localeCompare(right.sortDate);
 }
