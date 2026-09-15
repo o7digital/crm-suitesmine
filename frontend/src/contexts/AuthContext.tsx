@@ -143,26 +143,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function restoreOrStartDemo() {
       let restored = false;
 
-    if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      if (storedToken && storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser) as User;
-          if (parsedUser?.id && parsedUser?.tenantId) {
-            authSource.current = 'local';
-            if (!cancelled) {
-              setToken(storedToken);
-              setUser(parsedUser);
-            }
-            restored = true;
-          }
-        } catch {
+      // In production Clerk is the source of truth. Tokens left in localStorage
+      // by the former demo mode must never be sent to the real API.
+      if (hasClerk && !demoMode) {
+        if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
+        if (!cancelled) {
+          authSource.current = null;
+          setToken(null);
+          setUser(null);
+        }
+        return;
       }
-    }
+
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser) as User;
+            if (parsedUser?.id && parsedUser?.tenantId) {
+              authSource.current = 'local';
+              if (!cancelled) {
+                setToken(storedToken);
+                setUser(parsedUser);
+              }
+              restored = true;
+            }
+          } catch {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+      }
 
       if (!restored && demoMode) {
         const payload = { token: 'demo-token', user: demoUser };
@@ -183,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [bootstrapTenant, demoMode]);
+  }, [bootstrapTenant, demoMode, hasClerk]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -273,14 +288,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             authSource.current = 'clerk';
             setToken(nextToken);
             setUser(nextUser);
+            setLoading(false);
             localStorage.setItem('token', nextToken);
             localStorage.setItem('user', JSON.stringify(nextUser));
             void bootstrapTenant(nextToken, { ignoreErrors: true });
           }}
           onSignedOut={() => {
-            if (authSource.current === 'local') return;
+            authSource.current = null;
             setToken(null);
             setUser(null);
+            setLoading(false);
             clearAuthStorage();
           }}
         />
