@@ -70,6 +70,52 @@
       }
     },
     {
+      "id": "septiembre-independencia-mexico",
+      "month": "16 Septiembre",
+      "sendWindow": "15 de septiembre de 2026 · envío inmediato",
+      "segment": "Huéspedes en CDMX, viajeros nacionales e internacionales y contactos interesados en las Fiestas Patrias",
+      "goal": "Generar reservas de última hora y acompañar a los huéspedes durante las celebraciones de la Independencia de México.",
+      "status": "DRAFT",
+      "lastVerified": "2026-09-15",
+      "subject": "Celebra la Independencia de México desde el corazón de CDMX",
+      "preheader": "El Grito, el desfile del 16 de septiembre y una suite junto a Reforma.",
+      "headline": "Vive las Fiestas Patrias en Ciudad de México",
+      "eyebrow": "Edición especial Suites Mine · Independencia 2026",
+      "heroImage": "https://www.suitesmine.com/assets/uploads/2024/09/escalinatas-jacuzzi-370x167.webp",
+      "body": "Hola {{firstName}},\n\nCiudad de México se viste de verde, blanco y rojo para conmemorar el 216 aniversario del inicio de la Independencia. La noche del 15 de septiembre, el Zócalo reúne música y la ceremonia del Grito; el día 16, el tradicional Desfile Cívico Militar recorre el centro de la capital rumbo a Campo Marte.\n\nDesde Suites Mine puedes vivir esta fecha especial a pocos pasos de Paseo de la Reforma y volver a descansar en una suite amplia y tranquila. Por los cierres viales y la alta afluencia, te recomendamos salir con tiempo, usar transporte público y consultar los avisos oficiales antes de desplazarte.\n\nSi todavía estás organizando tu estancia, nuestro equipo puede ayudarte a consultar disponibilidad de última hora.",
+      "cta": "Consultar disponibilidad",
+      "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
+      "highlights": ["A dos calles del Ángel", "Cerca de la ruta del desfile", "Suites amplias con cocina"],
+      "events": [
+        {
+          "id": "grito-independencia-zocalo-2026",
+          "category": "Fiestas Patrias",
+          "title": "Ceremonia del Grito de Independencia",
+          "date": "15 de septiembre · actividades desde las 17:15",
+          "venue": "Zócalo de la Ciudad de México",
+          "description": "Música y celebración popular en la Plaza de la Constitución antes de la ceremonia oficial del Grito.",
+          "url": "https://mexicocity.cdmx.gob.mx/capital-nocturna/festivales-y-celebraciones/",
+          "sourceLabel": "Gobierno de la Ciudad de México"
+        },
+        {
+          "id": "desfile-civico-militar-2026",
+          "category": "Celebración nacional",
+          "title": "Desfile Cívico Militar del 16 de septiembre",
+          "date": "16 de septiembre",
+          "venue": "Centro Histórico · Paseo de la Reforma · Campo Marte",
+          "description": "La conmemoración nacional avanza desde el centro de la capital hacia Campo Marte; prevé cierres viales a lo largo de la ruta.",
+          "url": "https://www.gob.mx/cjef/articulos/16-de-septiembre-desfile-militar",
+          "sourceLabel": "Gobierno de México"
+        }
+      ],
+      "mailchimp": {
+        "campaignType": "regular",
+        "tags": ["newsletter", "septiembre", "independencia", "fiestas-patrias", "last-minute"],
+        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "utmCampaign": "newsletter_independencia_mexico_2026"
+      }
+    },
+    {
       "id": "septiembre-musica-arte",
       "month": "Septiembre",
       "sendWindow": "1–3 de septiembre de 2026",

@@ -300,8 +300,8 @@ export default function AdminMailPage() {
             <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Marketing · Mailchimp</p>
             <h1 className="mt-1 text-3xl font-semibold">Studio newsletter Suites Mine</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              Cinq campagnes 2026 — août, septembre, octobre, novembre et décembre — avec événements vérifiés, édition complète et
-              aperçu fidèle au design Suites Mine. Le catalogue culturel couvre août à décembre et alimente aussi Buffer.
+              Six campagnes 2026 — dont une édition spéciale pour l’Indépendance du Mexique — avec événements vérifiés, édition
+              complète et aperçu fidèle au design Suites Mine. Le catalogue culturel couvre août à décembre et alimente aussi Buffer.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
