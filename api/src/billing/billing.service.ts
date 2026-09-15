@@ -26,21 +26,25 @@ type StripeInvoice = {
 
 @Injectable()
 export class BillingService {
-  private readonly stripe: StripeClient;
+  private readonly stripe: StripeClient | null;
   private readonly webhookSecret: string;
 
   constructor(private prisma: PrismaService) {
     const key = process.env.STRIPE_SECRET_KEY;
-    if (!key) throw new Error('Missing STRIPE_SECRET_KEY');
     this.webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-    this.stripe = new Stripe(key, { apiVersion: '2026-05-27.dahlia' });
+    this.stripe = key ? new Stripe(key, { apiVersion: '2026-05-27.dahlia' }) : null;
+  }
+
+  private requireStripe() {
+    if (!this.stripe) throw new BadRequestException('Stripe is not configured for this workspace.');
+    return this.stripe;
   }
 
   constructEvent(rawBody: Buffer, signature: string | undefined) {
     if (!signature) throw new BadRequestException('Missing stripe-signature header');
     if (!this.webhookSecret) throw new BadRequestException('Missing STRIPE_WEBHOOK_SECRET');
     try {
-      return this.stripe.webhooks.constructEvent(rawBody, signature, this.webhookSecret);
+      return this.requireStripe().webhooks.constructEvent(rawBody, signature, this.webhookSecret);
     } catch {
       throw new BadRequestException('Invalid Stripe signature');
     }
@@ -72,6 +76,7 @@ export class BillingService {
   }
 
   async createCheckoutSession(dto: CreateCheckoutSessionDto, user: RequestUser) {
+    const stripe = this.requireStripe();
     const priceIdByPlan: Record<CreateCheckoutSessionDto['plan'], string | undefined> = {
       PULSE_BASIC: process.env.CRM_PULSE_BASIC_PRICE_ID,
       PULSE_STANDARD: process.env.CRM_PULSE_STANDARD_PRICE_ID,
@@ -86,7 +91,7 @@ export class BillingService {
     const successUrl = dto.successUrl || `${appUrl}/account/billing?billing=success&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = dto.cancelUrl || `${appUrl}/account/billing?billing=canceled`;
 
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
@@ -133,7 +138,7 @@ export class BillingService {
     const subscriptionId =
       typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
     if (!subscriptionId) return;
-    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await this.requireStripe().subscriptions.retrieve(subscriptionId);
     await this.syncStripeSubscription(subscription, 'ACTIVE', {
       billingEmail: session.customer_details?.email || session.customer_email || null,
     });
@@ -145,7 +150,7 @@ export class BillingService {
     const subscriptionId =
       typeof subscriptionRef === 'string' ? subscriptionRef : subscriptionRef?.id;
     if (subscriptionId) {
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+      const subscription = await this.requireStripe().subscriptions.retrieve(subscriptionId);
       await this.syncStripeSubscription(subscription, status);
       return;
     }
