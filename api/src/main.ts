@@ -9,7 +9,12 @@ async function bootstrap() {
     .split(',')
     .map((x) => x.trim())
     .filter(Boolean);
-  const allowlist = new Set<string>(['http://localhost:3000', 'https://crm-suites-o7.vercel.app', ...explicitOrigins]);
+  const allowlist = new Set<string>([
+    'http://localhost:3000',
+    'https://crm-suites-o7.vercel.app',
+    'https://crm-suitesmine.vercel.app',
+    ...explicitOrigins,
+  ]);
   app.enableCors({
     origin(origin, callback) {
       // Allow non-browser and same-origin requests.
@@ -18,7 +23,10 @@ async function bootstrap() {
       try {
         const url = new URL(origin);
         // Allow Vercel preview deployments for this project.
-        if (url.hostname.endsWith('.vercel.app') && url.hostname.startsWith('crm-suites-o7')) {
+        if (
+          url.hostname.endsWith('.vercel.app') &&
+          (url.hostname.startsWith('crm-suites-o7') || url.hostname.startsWith('crm-suitesmine'))
+        ) {
           return callback(null, true);
         }
       } catch {
