@@ -84,4 +84,9 @@ export class AppController {
       };
     }
   }
+
+  @Get('ready')
+  ready() {
+    return { ok: true };
+  }
 }
