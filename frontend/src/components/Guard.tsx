@@ -12,7 +12,7 @@ export function Guard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !token) {
-      router.replace('/sign-in');
+      router.replace('/login');
     }
   }, [loading, token, router]);
 
