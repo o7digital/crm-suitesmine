@@ -13,15 +13,6 @@ const proxiedApiOrigin = normalizeApiOrigin(
 );
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: '/clients/:clientId',
-        destination: '/clients?clientId=:clientId',
-        permanent: false,
-      },
-    ];
-  },
   async rewrites() {
     if (!proxiedApiOrigin) return [];
     return [
