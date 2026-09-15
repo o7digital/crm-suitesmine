@@ -196,15 +196,16 @@ export function BufferStudioModal({
   onPersistConfig: (config: BufferConfig) => Promise<void>;
   onClose: () => void;
 }) {
+  const defaultEvent = initialEvent || events.find((event) => event.id === 'desfile-civico-militar-2026') || null;
   const [config, setConfig] = useState(initialConfig);
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState(initialEvent?.id || '');
-  const [previewMonth, setPreviewMonth] = useState(initialEvent?.month || 'Todos');
-  const [text, setText] = useState(() => initialEvent ? socialTextForEvent(initialEvent) : 'Una pausa en el corazón de CDMX te espera en Suites Mine. ✨\n\nReserva directo: https://www.suitesmine.com/');
-  const [imageUrl, setImageUrl] = useState(initialEvent?.imageUrl || '');
-  const [mode, setMode] = useState<'queue' | 'custom'>('queue');
-  const [dueAt, setDueAt] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState(defaultEvent?.id || '');
+  const [previewMonth, setPreviewMonth] = useState(defaultEvent?.month || 'Todos');
+  const [text, setText] = useState(() => defaultEvent ? socialTextForEvent(defaultEvent) : 'Una pausa en el corazón de CDMX te espera en Suites Mine. ✨\n\nReserva directo: https://www.suitesmine.com/');
+  const [imageUrl, setImageUrl] = useState(defaultEvent?.imageUrl || defaultEvent?.posterUrl || '');
+  const [mode, setMode] = useState<'queue' | 'custom'>(defaultEvent?.id === 'desfile-civico-militar-2026' ? 'custom' : 'queue');
+  const [dueAt, setDueAt] = useState(defaultEvent?.id === 'desfile-civico-militar-2026' ? '2026-09-16T09:00' : '');
   const [busy, setBusy] = useState<'connect' | 'post' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
