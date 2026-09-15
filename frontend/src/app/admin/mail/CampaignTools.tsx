@@ -398,6 +398,12 @@ export function BufferStudioModal({
 }
 
 function socialTextForEvent(event: AnnualEvent) {
+  if (event.id === 'grito-independencia-zocalo-2026') {
+    return `🇲🇽 Celebra el Grito de Independencia en el corazón de Ciudad de México.\n\n📅 ${event.date}\n📍 ${event.venue}\n\nVive las Fiestas Patrias desde Suites Mine, a solo dos calles del Ángel de la Independencia.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
+  }
+  if (event.id === 'desfile-civico-militar-2026') {
+    return `🇲🇽 Este 16 de septiembre, vive el tradicional Desfile Cívico Militar en Ciudad de México.\n\n📍 ${event.venue}\n\nSuites Mine te espera junto a Paseo de la Reforma para disfrutar la celebración y descansar cerca de la ruta.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
+  }
   return `${event.title} llega a CDMX ✨\n\n📅 ${event.date}\n📍 ${event.venue}\n\nHaz de Suites Mine tu punto de partida, a solo dos calles del Ángel de la Independencia.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
 }
 

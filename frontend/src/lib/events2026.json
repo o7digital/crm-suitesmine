@@ -168,6 +168,34 @@
     "posterUrl": "https://www.ocesa.com.mx/todos-los-eventos/la-santa-cecilia-boletos-ae1512780"
   },
   {
+    "id": "grito-independencia-zocalo-2026",
+    "month": "Septiembre",
+    "sortDate": "2026-09-15",
+    "category": "Fiestas Patrias",
+    "title": "Ceremonia del Grito de Independencia",
+    "date": "15 de septiembre · actividades desde las 17:15",
+    "venue": "Zócalo de la Ciudad de México",
+    "description": "Música y celebración popular en la Plaza de la Constitución antes de la ceremonia oficial del Grito.",
+    "url": "https://mexicocity.cdmx.gob.mx/capital-nocturna/festivales-y-celebraciones/",
+    "sourceLabel": "Gobierno de la Ciudad de México",
+    "imageUrl": "https://www.suitesmine.com/assets/uploads/2024/09/HSM2-11-370x555.webp",
+    "posterUrl": "https://mexicocity.cdmx.gob.mx/capital-nocturna/festivales-y-celebraciones/"
+  },
+  {
+    "id": "desfile-civico-militar-2026",
+    "month": "Septiembre",
+    "sortDate": "2026-09-16",
+    "category": "Celebración nacional",
+    "title": "Desfile Cívico Militar del 16 de septiembre",
+    "date": "16 de septiembre",
+    "venue": "Centro Histórico · Paseo de la Reforma · Campo Marte",
+    "description": "La conmemoración nacional avanza desde el centro de la capital hacia Campo Marte; prevé cierres viales a lo largo de la ruta.",
+    "url": "https://www.gob.mx/cjef/articulos/16-de-septiembre-desfile-militar",
+    "sourceLabel": "Gobierno de México",
+    "imageUrl": "https://www.suitesmine.com/assets/uploads/2024/09/escalinatas-jacuzzi-370x167.webp",
+    "posterUrl": "https://www.gob.mx/cjef/articulos/16-de-septiembre-desfile-militar"
+  },
+  {
     "id": "robyn-septiembre",
     "month": "Septiembre",
     "sortDate": "2026-09-19",
