@@ -27,6 +27,13 @@ WHERE NOT EXISTS (
     AND s."name" = 'INVOICE Customer'
 );
 
+-- A CTE is scoped to one SQL statement, so select the Won stages again for
+-- the second insert instead of referring to the CTE above.
+WITH won_stage AS (
+  SELECT s."id" AS won_id, s."tenantId", s."pipelineId", s."position" AS won_pos
+  FROM "Stage" s
+  WHERE s."name" = 'Won'
+)
 INSERT INTO "Stage" ("id", "name", "position", "probability", "status", "tenantId", "pipelineId", "createdAt", "updatedAt")
 SELECT gen_random_uuid(), 'TRANSFER PAYMENT', ws.won_pos + 2, 1.00, 'WON'::"StageStatus", ws."tenantId", ws."pipelineId", NOW(), NOW()
 FROM won_stage ws
@@ -36,4 +43,3 @@ WHERE NOT EXISTS (
     AND s."pipelineId" = ws."pipelineId"
     AND s."name" = 'TRANSFER PAYMENT'
 );
-

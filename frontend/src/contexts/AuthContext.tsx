@@ -40,33 +40,38 @@ function ClerkSessionSync({
   onSession: (payload: { token: string; user: User }) => void;
   onSignedOut: () => void;
 }) {
-  const clerkAuth = useClerkAuth();
-  const clerkUser = useClerkUser();
+  const { isLoaded: authLoaded, userId, getToken } = useClerkAuth();
+  const { isLoaded: userLoaded, user: clerkUser } = useClerkUser();
+  const metadataSyncAttempted = useRef(false);
 
   useEffect(() => {
-    if (!clerkAuth.isLoaded || !clerkUser.isLoaded) return;
-    if (!clerkAuth.userId || !clerkUser.user) {
+    if (!authLoaded || !userLoaded) return;
+    if (!userId || !clerkUser) {
       onSignedOut();
       return;
     }
 
-    const metadata = (clerkUser.user.publicMetadata ?? {}) as Record<string, unknown>;
+    const metadata = (clerkUser.publicMetadata ?? {}) as Record<string, unknown>;
     const tenantId =
       (metadata.tenant_id as string | undefined) ||
       (metadata.tenantId as string | undefined) ||
-      clerkAuth.userId;
+      userId;
     const tenantName =
       (metadata.tenant_name as string | undefined) || (metadata.tenantName as string | undefined);
 
     const mappedUser: User = {
-      id: clerkAuth.userId,
-      email: clerkUser.user.primaryEmailAddress?.emailAddress || '',
-      name: clerkUser.user.fullName || clerkUser.user.firstName || clerkUser.user.username || 'User',
+      id: userId,
+      email: clerkUser.primaryEmailAddress?.emailAddress || '',
+      name: clerkUser.fullName || clerkUser.firstName || clerkUser.username || 'User',
       tenantId,
       tenantName,
     };
 
-    void clerkAuth.getToken().then((jwt) => {
+    let cancelled = false;
+
+    const syncSession = async () => {
+      const jwt = await getToken();
+      if (cancelled) return;
       if (!jwt) return onSignedOut();
       const hasTenantMetadata = Boolean(
         metadata.tenant_id ||
@@ -74,7 +79,8 @@ function ClerkSessionSync({
           metadata.tenant_name ||
           metadata.tenantName,
       );
-      if (!hasTenantMetadata) {
+      if (!hasTenantMetadata && !metadataSyncAttempted.current) {
+        metadataSyncAttempted.current = true;
         void fetch('/api/clerk/sync-metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,8 +93,20 @@ function ClerkSessionSync({
         });
       }
       onSession({ token: jwt, user: mappedUser });
-    });
-  }, [clerkAuth, clerkUser, onSession, onSignedOut]);
+    };
+
+    void syncSession().catch(onSignedOut);
+    // Clerk session tokens are short-lived. Keep the API token fresh while the
+    // page stays open instead of leaving the app with the token from sign-in.
+    const refreshTimer = window.setInterval(() => {
+      void syncSession().catch(onSignedOut);
+    }, 45_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshTimer);
+    };
+  }, [authLoaded, clerkUser, getToken, onSession, onSignedOut, userId, userLoaded]);
 
   return null;
 }
@@ -268,6 +286,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (source === 'clerk' && hasClerk && typeof window !== 'undefined') window.location.href = '/sign-out';
   }, [clearAuthStorage, hasClerk]);
 
+  const handleClerkSession = useCallback(
+    ({ token: nextToken, user: nextUser }: { token: string; user: User }) => {
+      authSource.current = 'clerk';
+      setToken(nextToken);
+      setUser(nextUser);
+      setLoading(false);
+      localStorage.setItem('token', nextToken);
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      void bootstrapTenant(nextToken, { ignoreErrors: true });
+    },
+    [bootstrapTenant],
+  );
+
+  const handleClerkSignedOut = useCallback(() => {
+    authSource.current = null;
+    setToken(null);
+    setUser(null);
+    setLoading(false);
+    clearAuthStorage();
+  }, [clearAuthStorage]);
+
   const value = useMemo(
     () => ({
       user,
@@ -284,22 +323,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={value}>
       {hasClerk && !demoMode ? (
         <ClerkSessionSync
-          onSession={({ token: nextToken, user: nextUser }) => {
-            authSource.current = 'clerk';
-            setToken(nextToken);
-            setUser(nextUser);
-            setLoading(false);
-            localStorage.setItem('token', nextToken);
-            localStorage.setItem('user', JSON.stringify(nextUser));
-            void bootstrapTenant(nextToken, { ignoreErrors: true });
-          }}
-          onSignedOut={() => {
-            authSource.current = null;
-            setToken(null);
-            setUser(null);
-            setLoading(false);
-            clearAuthStorage();
-          }}
+          onSession={handleClerkSession}
+          onSignedOut={handleClerkSignedOut}
         />
       ) : null}
       {children}
