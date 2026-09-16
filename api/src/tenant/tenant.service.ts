@@ -809,14 +809,22 @@ export class TenantService {
     const results: Array<{ channelId: string; postId: string; dueAt?: string | null }> = [];
     const failed: Array<{ channelId: string; message: string }> = [];
     for (const channelId of channelIds) {
+      const channel = workspace.channels.find((item) => item.id === channelId);
       const scheduling =
         dto.mode === 'custom'
           ? `mode: customScheduled, dueAt: ${JSON.stringify(dueAt)}`
           : 'mode: addToQueue';
+      const service = String(channel?.service || '').toLowerCase();
+      const metadata =
+        service === 'instagram'
+          ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }'
+          : ['facebook', 'threads'].includes(service)
+            ? `metadata: { ${service}: { type: post } }`
+            : '';
       const assets = dto.imageUrl?.trim()
         ? `assets: [{ image: { url: ${JSON.stringify(dto.imageUrl.trim())} } }]`
         : '';
-      const query = `mutation CreatePost { createPost(input: { text: ${JSON.stringify(dto.text.trim())}, channelId: ${JSON.stringify(channelId)}, schedulingType: automatic, ${scheduling} ${assets} }) { ... on PostActionSuccess { post { id dueAt } } ... on MutationError { message } } }`;
+      const query = `mutation CreatePost { createPost(input: { text: ${JSON.stringify(dto.text.trim())}, channelId: ${JSON.stringify(channelId)}, schedulingType: automatic, ${scheduling} ${metadata} ${assets} }) { ... on PostActionSuccess { post { id dueAt } } ... on MutationError { message } } }`;
       try {
         const data = await this.bufferRequest<{
           createPost?: { post?: { id?: string; dueAt?: string | null }; message?: string };

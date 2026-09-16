@@ -262,6 +262,8 @@ export function BufferStudioModal({
     setSelectedEventId(event.id);
     setText(socialTextForEvent(event));
     setImageUrl(event.imageUrl || event.posterUrl || '');
+    setMode('custom');
+    setDueAt(`${event.sortDate}T09:00`);
   };
 
   return (
