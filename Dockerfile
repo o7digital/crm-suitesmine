@@ -11,7 +11,7 @@ RUN cd api && npm ci
 RUN cd api && npx prisma generate
 # Build sources
 COPY api/src ./api/src
-RUN cd api && npm run build
+RUN cd api && npm run build && test -f dist/main.js
 
 FROM node:20-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
