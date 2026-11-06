@@ -31,7 +31,9 @@ export type BufferChannel = {
 };
 type ApiClient = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 
-const months = ['Todos', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+function catalogMonths(events: AnnualEvent[]) {
+  return ['Todos', ...new Set([...events].sort((left, right) => left.sortDate.localeCompare(right.sortDate)).map((event) => event.month))];
+}
 
 export function EventCatalogModal({
   events,
@@ -55,6 +57,7 @@ export function EventCatalogModal({
   const [month, setMonth] = useState('Todos');
   const [category, setCategory] = useState('Todos');
   const [query, setQuery] = useState('');
+  const months = useMemo(() => catalogMonths(events), [events]);
   const categories = useMemo(
     () => ['Todos', ...Array.from(new Set(events.map((event) => event.category))).sort()],
     [events],
@@ -75,7 +78,7 @@ export function EventCatalogModal({
         <div className="mx-auto flex max-w-7xl flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-[#dfb85f]">Agenda vérifié · CDMX</p>
-            <h2 className="mt-1 text-2xl font-semibold">Catalogue événements · août à décembre 2026</h2>
+            <h2 className="mt-1 text-2xl font-semibold">Catalogue événements · août 2026 à février 2027</h2>
             <p className="mt-1 text-sm text-slate-400">{events.length} idées avec date, lieu, visuel disponible et source officielle.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -196,7 +199,8 @@ export function BufferStudioModal({
   onPersistConfig: (config: BufferConfig) => Promise<void>;
   onClose: () => void;
 }) {
-  const defaultEvent = initialEvent || events.find((event) => event.id === 'desfile-civico-militar-2026') || null;
+  const defaultEvent = initialEvent || events.find((event) => event.month === 'Diciembre') || null;
+  const months = useMemo(() => catalogMonths(events), [events]);
   const [config, setConfig] = useState(initialConfig);
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
@@ -204,8 +208,8 @@ export function BufferStudioModal({
   const [previewMonth, setPreviewMonth] = useState(defaultEvent?.month || 'Todos');
   const [text, setText] = useState(() => defaultEvent ? socialTextForEvent(defaultEvent) : 'Una pausa en el corazón de CDMX te espera en Suites Mine. ✨\n\nReserva directo: https://www.suitesmine.com/');
   const [imageUrl, setImageUrl] = useState(defaultEvent?.imageUrl || defaultEvent?.posterUrl || '');
-  const [mode, setMode] = useState<'queue' | 'custom'>(defaultEvent?.id === 'desfile-civico-militar-2026' ? 'custom' : 'queue');
-  const [dueAt, setDueAt] = useState(defaultEvent?.id === 'desfile-civico-militar-2026' ? '2026-09-16T09:00' : '');
+  const [mode, setMode] = useState<'queue' | 'custom'>(defaultEvent ? 'custom' : 'queue');
+  const [dueAt, setDueAt] = useState(defaultEvent ? `${defaultEvent.sortDate}T09:00` : '');
   const [busy, setBusy] = useState<'connect' | 'post' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 

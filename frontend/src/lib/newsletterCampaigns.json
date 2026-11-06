@@ -39,7 +39,11 @@
       "body": "Hola {{firstName}},\n\nAgosto todavía guarda noches memorables en la Ciudad de México. Desde Suites Mine puedes combinar una residencia íntima de Sam Smith en el Auditorio Nacional con una tarde de arquitectura y arte en el Museo Tamayo.\n\nNuestro equipo puede ayudarte a organizar una estancia cómoda cerca de Reforma, con desayuno y recomendaciones para moverte por la ciudad. Las fechas y disponibilidad de los eventos pueden cambiar: consulta siempre la fuente oficial antes de reservar.\n\nElige tus fechas y prepara una escapada hecha a tu ritmo.",
       "cta": "Consultar disponibilidad",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["A dos calles del Ángel", "Suites amplias con cocina", "Terraza, bar y jacuzzi"],
+      "highlights": [
+        "A dos calles del Ángel",
+        "Suites amplias con cocina",
+        "Terraza, bar y jacuzzi"
+      ],
       "events": [
         {
           "id": "sam-smith-agosto",
@@ -64,10 +68,21 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "agosto", "cultura", "last-minute"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "agosto",
+          "cultura",
+          "last-minute"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_agosto_2026_cultura_reforma"
-      }
+      },
+      "year": 2026
     },
     {
       "id": "septiembre-independencia-mexico",
@@ -85,7 +100,11 @@
       "body": "Hola {{firstName}},\n\nCiudad de México se viste de verde, blanco y rojo para conmemorar el 216 aniversario del inicio de la Independencia. La noche del 15 de septiembre, el Zócalo reúne música y la ceremonia del Grito; el día 16, el tradicional Desfile Cívico Militar recorre el centro de la capital rumbo a Campo Marte.\n\nDesde Suites Mine puedes vivir esta fecha especial a pocos pasos de Paseo de la Reforma y volver a descansar en una suite amplia y tranquila. Por los cierres viales y la alta afluencia, te recomendamos salir con tiempo, usar transporte público y consultar los avisos oficiales antes de desplazarte.\n\nSi todavía estás organizando tu estancia, nuestro equipo puede ayudarte a consultar disponibilidad de última hora.",
       "cta": "Consultar disponibilidad",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["A dos calles del Ángel", "Cerca de la ruta del desfile", "Suites amplias con cocina"],
+      "highlights": [
+        "A dos calles del Ángel",
+        "Cerca de la ruta del desfile",
+        "Suites amplias con cocina"
+      ],
       "events": [
         {
           "id": "grito-independencia-zocalo-2026",
@@ -110,10 +129,22 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "septiembre", "independencia", "fiestas-patrias", "last-minute"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "septiembre",
+          "independencia",
+          "fiestas-patrias",
+          "last-minute"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_independencia_mexico_2026"
-      }
+      },
+      "year": 2026
     },
     {
       "id": "septiembre-musica-arte",
@@ -131,7 +162,11 @@
       "body": "Hola {{firstName}},\n\nSeptiembre llega con una agenda que vale el viaje. Robyn y Lykke Li toman el Palacio de los Deportes, Maroon 5 cierra el mes en el Estadio Alfredo Harp Helú y el Museo Tamayo presenta los últimos días de Tamayo Horizontes.\n\nSuites Mine es tu punto de descanso junto a Reforma: una suite amplia para comenzar despacio, volver sin prisa y aprovechar la ciudad entre cada plan. Verifica horarios y disponibilidad con los organizadores antes de comprar.\n\nCuéntanos qué evento tienes en mente y te ayudamos a elegir las mejores noches.",
       "cta": "Planear mi estancia",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["Ubicación céntrica", "Wifi de alta velocidad", "Atención personalizada"],
+      "highlights": [
+        "Ubicación céntrica",
+        "Wifi de alta velocidad",
+        "Atención personalizada"
+      ],
       "events": [
         {
           "id": "robyn-septiembre",
@@ -166,10 +201,21 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "septiembre", "conciertos", "arte"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "septiembre",
+          "conciertos",
+          "arte"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_septiembre_2026_musica_arte"
-      }
+      },
+      "year": 2026
     },
     {
       "id": "octubre-espectaculos-cdmx",
@@ -187,7 +233,11 @@
       "body": "Hola {{firstName}},\n\nOctubre reúne algunas de las citas más esperadas del año en Ciudad de México. El Formula 1 Gran Premio de la Ciudad de México toma el Autódromo Hermanos Rodríguez del 30 de octubre al 1 de noviembre. La agenda musical suma a Pablo Alborán, Motorama, Álvaro Díaz, Hombres G, la Sonora Santanera, Romeo Santos y Prince Royce, además de Amadeus Live, ballet y Monster Jam.\n\nDesde Suites Mine puedes descansar junto a Reforma y organizar cada salida con calma. Consulta siempre horarios y disponibilidad en las fuentes oficiales enlazadas antes de comprar.\n\nElige tu evento y nosotros te ayudamos a preparar la estancia.",
       "cta": "Reservar mi estancia de octubre",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["Cerca de Reforma", "Suites amplias con cocina", "Terraza, bar y jacuzzi"],
+      "highlights": [
+        "Cerca de Reforma",
+        "Suites amplias con cocina",
+        "Terraza, bar y jacuzzi"
+      ],
       "events": [
         {
           "id": "motorama-octubre",
@@ -275,10 +325,22 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "octubre", "formula-1", "mexico-gp", "conciertos"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "octubre",
+          "formula-1",
+          "mexico-gp",
+          "conciertos"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_octubre_2026_espectaculos_cdmx"
-      }
+      },
+      "year": 2026
     },
     {
       "id": "noviembre-grandes-noches",
@@ -296,7 +358,11 @@
       "body": "Hola {{firstName}},\n\nNoviembre trae excelentes razones para visitar la capital. Cirque du Soleil instala ECHO en la Gran Carpa Santa Fe desde el día 13, Soda Stereo presenta Ecos en el Palacio de los Deportes el 23 y el MUNAL recorre la construcción visual de México como destino.\n\nHaz de Suites Mine tu base cerca de Reforma: espacio para trabajar o descansar, atención directa y una ubicación práctica para seguir explorando al día siguiente. La venta y los horarios dependen de cada organizador; confirma la información en las fuentes enlazadas.\n\nEscríbenos tus fechas y preparamos una estancia a tu medida.",
       "cta": "Cotizar mi escapada",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["Suite tipo apartamento", "Desayuno y bar", "Seguimiento antes de tu llegada"],
+      "highlights": [
+        "Suite tipo apartamento",
+        "Desayuno y bar",
+        "Seguimiento antes de tu llegada"
+      ],
       "events": [
         {
           "id": "cirque-echo-noviembre",
@@ -331,10 +397,21 @@
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "noviembre", "cirque-du-soleil", "soda-stereo"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "noviembre",
+          "cirque-du-soleil",
+          "soda-stereo"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_noviembre_2026_grandes_noches"
-      }
+      },
+      "year": 2026
     },
     {
       "id": "diciembre-fiestas-cdmx",
@@ -343,65 +420,391 @@
       "segment": "Parejas, familias, huéspedes recurrentes y viajeros de fin de año",
       "goal": "Générer des réservations pour les fêtes, les concerts et les séjours de fin d’année.",
       "status": "READY",
-      "lastVerified": "2026-08-13",
-      "subject": "Diciembre en CDMX: MANÁ, Cirque du Soleil y arte para cerrar 2026",
-      "preheader": "Conciertos, espectáculo y museos para una escapada de fin de año junto a Reforma.",
+      "lastVerified": "2026-11-05",
+      "subject": "Diciembre en CDMX: música, circo y arte para cerrar el año",
+      "preheader": "Jesse & Joy, MANÁ, ECHO y museos: prepara tu escapada de fin de año desde Reforma.",
       "headline": "Diciembre merece una gran escapada",
       "eyebrow": "Agenda Suites Mine · Diciembre 2026",
       "heroImage": "https://www.suitesmine.com/assets/uploads/2024/09/HSM2-32-370x555.webp",
-      "body": "Hola {{firstName}},\n\nDiciembre transforma Ciudad de México en una escapada llena de música, espectáculo y cultura. Cirque du Soleil continúa la temporada de ECHO en Santa Fe, MANÁ cierra el año con dos noches en el Palacio de los Deportes y las exposiciones del Museo Tamayo y el MUNAL ofrecen planes tranquilos entre celebraciones.\n\nSuites Mine te recibe a dos calles del Ángel con espacio para descansar, preparar el día a tu ritmo y disfrutar la ciudad sin prisas. Confirma siempre fechas, horarios y disponibilidad en las páginas oficiales.\n\nReserva directo y convierte el cierre de 2026 en un viaje memorable.",
+      "body": "Hola {{firstName}},\n\nEl cierre del año merece una escapada con música, cultura y tiempo para descansar. Abre diciembre con el concierto navideño de la Sinfónica de Minería y Jesse & Joy en el Auditorio Nacional; más adelante, MANÁ llega al Estadio GNP Seguros. Cirque du Soleil presenta ECHO en Santa Fe y los museos ofrecen otra manera de disfrutar la ciudad.\n\nDesde Suites Mine, a dos calles del Ángel de la Independencia, combina tus planes con el espacio de una suite tipo apartamento y una atención cercana para preparar tu llegada.\n\nElige tus fechas, consulta horarios y disponibilidad en las fuentes oficiales y reserva directo tu última escapada de 2026.",
       "cta": "Preparar mi escapada de diciembre",
       "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
-      "highlights": ["A dos calles del Ángel", "Suite tipo apartamento", "Atención personalizada"],
+      "highlights": [
+        "A dos calles del Ángel",
+        "Suite tipo apartamento",
+        "Atención personalizada"
+      ],
       "events": [
         {
           "id": "cirque-echo-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-01",
           "category": "Espectáculo",
           "title": "Cirque du Soleil · ECHO",
           "date": "Funciones durante diciembre",
           "venue": "Gran Carpa Santa Fe",
           "description": "La temporada de ECHO continúa en diciembre con funciones para cerrar el año.",
           "url": "https://www.ocesa.com.mx/todos-los-eventos/cirque-du-soleil-boletos-ae9243",
-          "sourceLabel": "OCESA"
-        },
-        {
-          "id": "mana-diciembre",
-          "category": "Concierto",
-          "title": "MANÁ",
-          "date": "16 y 17 de diciembre",
-          "venue": "Palacio de los Deportes",
-          "description": "Dos grandes noches de rock en español para cerrar la agenda musical de 2026.",
-          "url": "https://www.ticketmaster.com.mx/mana-boletos/artist/759223",
-          "sourceLabel": "Ticketmaster México"
+          "sourceLabel": "OCESA",
+          "imageUrl": "https://dynamicmedia.livenationinternational.com/k/c/b/1d9db872-004b-4007-aca6-179c6d35fb15.jpg",
+          "posterUrl": "https://www.ocesa.com.mx/todos-los-eventos/cirque-du-soleil-boletos-ae9243"
         },
         {
           "id": "tamayo-arquitectura-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-01",
           "category": "Museo",
           "title": "Arquitectura y cosmotécnica",
-          "date": "Hasta el 3 de enero de 2027",
+          "date": "Hasta el 28 de febrero de 2027",
           "venue": "Museo Tamayo",
           "description": "Una lectura contemporánea del edificio brutalista a 45 años de la inauguración del museo.",
           "url": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica",
           "sourceLabel": "Museo Tamayo",
-          "imageUrl": "https://cdn.prod.website-files.com/5f3576fec2caeb654f6deb22/6a6a8db7e04a777aae497f84__MG_8780%202.jpg"
+          "imageUrl": "https://cdn.prod.website-files.com/5f3576fec2caeb654f6deb22/6a6a8db7e04a777aae497f84__MG_8780%202.jpg",
+          "posterUrl": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica"
         },
         {
           "id": "munal-ruta-destino-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-01",
           "category": "Museo",
           "title": "México: ruta y destino",
           "date": "Hasta el 14 de febrero de 2027",
           "venue": "Museo Nacional de Arte (MUNAL)",
           "description": "Arte, fotografía, mapas y cultura visual exploran cómo México construyó su imagen como destino.",
           "url": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino",
-          "sourceLabel": "MUNAL"
+          "sourceLabel": "MUNAL",
+          "imageUrl": "https://munal.mx/images/MUNAL_MEXICO_RUTA-Y-DESTINO.jpg",
+          "posterUrl": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino"
+        },
+        {
+          "id": "concierto-navideno-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-05",
+          "category": "Concierto",
+          "title": "Concierto Navideño · Sinfónica de Minería",
+          "date": "5 de diciembre · 19:30",
+          "venue": "Auditorio Nacional",
+          "description": "Una noche de música navideña para empezar diciembre con una escapada en familia.",
+          "url": "https://www.auditorio.com.mx/cartelera/2026/enero/concierto-navideño-radio-centro-con-la-sinfónica-de-minería.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2026/Concierto-Navideno/Navi-Cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2026/enero/concierto-navideño-radio-centro-con-la-sinfónica-de-minería.html"
+        },
+        {
+          "id": "jesse-joy-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-06",
+          "category": "Concierto",
+          "title": "Jesse & Joy · ¿Con quién se queda el Reno?",
+          "date": "6 de diciembre · 18:00",
+          "venue": "Auditorio Nacional",
+          "description": "Una tarde de canciones para compartir y continuar la noche cerca de Reforma.",
+          "url": "https://www.auditorio.com.mx/cartelera/2026/enero/jesse-y-joy-diciembre.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2026/Joy/Auditorio-Nacional-JyJ-Cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2026/enero/jesse-y-joy-diciembre.html"
+        },
+        {
+          "id": "mana-diciembre",
+          "month": "Diciembre",
+          "sortDate": "2026-12-16",
+          "category": "Concierto",
+          "title": "MANÁ",
+          "date": "16 y 17 de diciembre",
+          "venue": "Estadio GNP Seguros",
+          "description": "Dos grandes noches de rock en español para cerrar la agenda musical de 2026.",
+          "url": "https://www.ticketmaster.com.mx/mana-boletos/artist/759223",
+          "sourceLabel": "Ticketmaster México",
+          "imageUrl": "https://media.ticketmaster.com/tm/en-us/dam/a/ec6/5a50bf30-d0d8-4144-849b-5787430edec6_CUSTOM.jpg",
+          "posterUrl": "https://www.ticketmaster.com.mx/mana-boletos/artist/759223"
         }
       ],
       "mailchimp": {
         "campaignType": "regular",
-        "tags": ["newsletter", "diciembre", "fiestas", "mana", "cirque-du-soleil"],
-        "mergeTags": ["firstName", "fullName", "company", "email"],
+        "tags": [
+          "newsletter",
+          "diciembre",
+          "fiestas",
+          "mana",
+          "cirque-du-soleil"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
         "utmCampaign": "newsletter_diciembre_2026_fiestas_cdmx"
-      }
+      },
+      "year": 2026
+    },
+    {
+      "id": "enero-escapada-cultural-2027",
+      "month": "Enero",
+      "sendWindow": "15–18 de diciembre de 2026",
+      "segment": "Parejas, viajeros culturales, huéspedes recurrentes y escapadas de inicio de año",
+      "goal": "Générer des réservations en janvier autour des concerts et des musées de CDMX.",
+      "status": "READY",
+      "lastVerified": "2026-11-05",
+      "subject": "Enero en CDMX: Interstellar, Apocalyptica y arte para empezar 2027",
+      "preheader": "Estrena el año con cine en concierto, música y museos desde una suite junto a Reforma.",
+      "headline": "Empieza 2027 con una escapada a tu ritmo",
+      "eyebrow": "Agenda Suites Mine · Enero 2027",
+      "heroImage": "https://www.suitesmine.com/assets/uploads/2024/09/HSM2-32-370x555.webp",
+      "body": "Hola {{firstName}},\n\nEl primer viaje de 2027 puede empezar con una gran noche en Ciudad de México. Apocalyptica, Interstellar Live, Fangoria y La Caravana del Rock and Roll ponen la música en el Auditorio Nacional. Para una tarde más tranquila, descubre México: ruta y destino en el MUNAL o Arquitectura y cosmotécnica en el Museo Tamayo.\n\nEn Suites Mine te espera el espacio de una suite tipo apartamento a dos calles del Ángel de la Independencia: una base cómoda para alternar conciertos, paseos por Reforma y descanso.\n\nConsulta las fechas y la disponibilidad en las fuentes oficiales, elige tus noches y reserva directo. Hagamos de enero el comienzo de nuevas historias.",
+      "cta": "Preparar mi escapada de enero",
+      "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
+      "highlights": [
+        "A dos calles del Ángel",
+        "Suite tipo apartamento",
+        "Atención personalizada"
+      ],
+      "events": [
+        {
+          "id": "munal-ruta-destino-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-01",
+          "category": "Museo",
+          "title": "México: ruta y destino",
+          "date": "Hasta el 14 de febrero de 2027",
+          "venue": "Museo Nacional de Arte (MUNAL)",
+          "description": "Arte, fotografía, mapas y cultura visual exploran cómo México construyó su imagen como destino.",
+          "url": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino",
+          "sourceLabel": "MUNAL",
+          "imageUrl": "https://munal.mx/images/MUNAL_MEXICO_RUTA-Y-DESTINO.jpg",
+          "posterUrl": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino"
+        },
+        {
+          "id": "tamayo-arquitectura-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-01",
+          "category": "Museo",
+          "title": "Arquitectura y cosmotécnica",
+          "date": "Hasta el 28 de febrero de 2027",
+          "venue": "Museo Tamayo",
+          "description": "Una lectura contemporánea del edificio brutalista a 45 años de la inauguración del museo.",
+          "url": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica",
+          "sourceLabel": "Museo Tamayo",
+          "imageUrl": "https://cdn.prod.website-files.com/5f3576fec2caeb654f6deb22/6a6a8db7e04a777aae497f84__MG_8780%202.jpg",
+          "posterUrl": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica"
+        },
+        {
+          "id": "apocalyptica-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-16",
+          "category": "Concierto",
+          "title": "Apocalyptica",
+          "date": "16 de enero · 20:00",
+          "venue": "Auditorio Nacional",
+          "description": "Violonchelos y metal sinfónico para darle intensidad al primer viaje del año.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/enero/apocalyptica.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Apocalyptica/Auditoria-Nacional-Apocalyptica-cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/enero/apocalyptica.html"
+        },
+        {
+          "id": "interstellar-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-17",
+          "category": "Cine concierto",
+          "title": "Interstellar Live · Cinema Concert Festival",
+          "date": "17 de enero · 19:00",
+          "venue": "Auditorio Nacional",
+          "description": "Una proyección con orquesta en vivo para combinar cine, música y una estancia en CDMX.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/enero/interstellar-live.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Interestellar/Auditorio-Nacional-Interstellar-artelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/enero/interstellar-live.html"
+        },
+        {
+          "id": "fangoria-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-21",
+          "category": "Concierto",
+          "title": "Fangoria",
+          "date": "21 de enero",
+          "venue": "Auditorio Nacional",
+          "description": "Pop electrónico para una noche de concierto y un fin de semana a tu ritmo.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/enero/fangoria.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Fangoria/Auditorio-Nacional-Fangoria-cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/enero/fangoria.html"
+        },
+        {
+          "id": "caravana-rock-enero-2027",
+          "month": "Enero",
+          "sortDate": "2027-01-23",
+          "category": "Concierto",
+          "title": "La Caravana del Rock and Roll · La Despedida",
+          "date": "23 de enero · 19:00",
+          "venue": "Auditorio Nacional",
+          "description": "Una cita con el rock and roll para compartir recuerdos y descubrir la ciudad.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/enero/la-caravana-del-rock-and-roll.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Caravana-Rock/Auditorio-Nacional-Caravana-Del_Rock-cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/enero/la-caravana-del-rock-and-roll.html"
+        }
+      ],
+      "mailchimp": {
+        "campaignType": "regular",
+        "tags": [
+          "newsletter",
+          "enero",
+          "2027",
+          "interstellar",
+          "apocalyptica"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
+        "utmCampaign": "newsletter_enero_2027_escapada"
+      },
+      "year": 2027
+    },
+    {
+      "id": "febrero-amor-musica-2027",
+      "month": "Febrero",
+      "sendWindow": "19–22 de enero de 2027",
+      "segment": "Parejas, amigos, huéspedes recurrentes y viajeros interesados en música y arte",
+      "goal": "Convertir les escapades de février et de la Saint-Valentin en réservations directes.",
+      "status": "READY",
+      "lastVerified": "2026-11-05",
+      "subject": "Febrero en CDMX: una escapada para dos, música y arte",
+      "preheader": "Jesse & Joy el 14 de febrero, Sin Bandera y planes culturales para compartir junto a Reforma.",
+      "headline": "Febrero se disfruta mejor en buena compañía",
+      "eyebrow": "Agenda Suites Mine · Febrero 2027",
+      "heroImage": "https://www.suitesmine.com/assets/uploads/2024/09/HSM2-32-370x555.webp",
+      "body": "Hola {{firstName}},\n\nRegálense tiempo juntos en Ciudad de México. Febrero trae a Carlos Sadness, Sin Bandera y Jesse & Joy al Auditorio Nacional, con un concierto el 14 de febrero para celebrar el Amor y la Amistad. También hay espacio para reír con Franco Escamilla y bailar con Leyendas de la Cumbia.\n\nCompleten la escapada con una visita al MUNAL antes del cierre de México: ruta y destino, el 14 de febrero, o al Museo Tamayo, donde Arquitectura y cosmotécnica continúa hasta el 28.\n\nSuites Mine los recibe a dos calles del Ángel de la Independencia, con una suite tipo apartamento para descansar y disfrutar la ciudad a su ritmo. Revisen fechas y disponibilidad en las fuentes oficiales y reserven directo su estancia para dos.",
+      "cta": "Reservar nuestra escapada",
+      "ctaUrl": "https://hotels.cloudbeds.com/reservation/",
+      "highlights": [
+        "A dos calles del Ángel",
+        "Suite tipo apartamento",
+        "Atención personalizada"
+      ],
+      "events": [
+        {
+          "id": "munal-ruta-destino-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-01",
+          "category": "Museo",
+          "title": "México: ruta y destino",
+          "date": "Hasta el 14 de febrero de 2027",
+          "venue": "Museo Nacional de Arte (MUNAL)",
+          "description": "Arte, fotografía, mapas y cultura visual exploran cómo México construyó su imagen como destino.",
+          "url": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino",
+          "sourceLabel": "MUNAL",
+          "imageUrl": "https://munal.mx/images/MUNAL_MEXICO_RUTA-Y-DESTINO.jpg",
+          "posterUrl": "https://munal.mx/es/exposiciones/m%C3%A9xico-ruta-y-destino"
+        },
+        {
+          "id": "tamayo-arquitectura-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-01",
+          "category": "Museo",
+          "title": "Arquitectura y cosmotécnica",
+          "date": "Hasta el 28 de febrero de 2027",
+          "venue": "Museo Tamayo",
+          "description": "Una lectura contemporánea del edificio brutalista a 45 años de la inauguración del museo.",
+          "url": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica",
+          "sourceLabel": "Museo Tamayo",
+          "imageUrl": "https://cdn.prod.website-files.com/5f3576fec2caeb654f6deb22/6a6a8db7e04a777aae497f84__MG_8780%202.jpg",
+          "posterUrl": "https://www.museotamayo.org/exposiciones/museo-tamayo-arquitectura-y-cosmotecnica"
+        },
+        {
+          "id": "carlos-sadness-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-05",
+          "category": "Concierto",
+          "title": "Carlos Sadness · Noche de perseidas",
+          "date": "5 de febrero · 20:30",
+          "venue": "Auditorio Nacional",
+          "description": "Una noche de pop para empezar febrero con música y una escapada junto a Reforma.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/febrero/carlos-sadness.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Carlos-Sadness/Audiotrio-Nacional-Cartelera-CarlosSadness.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/febrero/carlos-sadness.html"
+        },
+        {
+          "id": "franco-escamilla-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-06",
+          "category": "Comedia",
+          "title": "Franco Escamilla",
+          "date": "6 de febrero · 21:30",
+          "venue": "Auditorio Nacional",
+          "description": "Comedia en el Auditorio Nacional para una salida en pareja o con amigos.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/febrero/franco-escamilla.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Franco-Escamilla/Auditorio-Nacional-Franco-Escamilla-Cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/febrero/franco-escamilla.html"
+        },
+        {
+          "id": "sin-bandera-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-07",
+          "category": "Concierto",
+          "title": "Sin Bandera · Frecuencia Tour",
+          "date": "7 de febrero · 19:30",
+          "venue": "Auditorio Nacional",
+          "description": "Baladas para una noche especial antes de volver a descansar en tu suite.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/febrero/sin-bandera.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Sin-Bandera/Auditorio-Nacional-Cartelera-SinBandera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/febrero/sin-bandera.html"
+        },
+        {
+          "id": "jesse-joy-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-14",
+          "category": "Concierto",
+          "title": "Jesse & Joy · El amor de México",
+          "date": "14 de febrero · 19:00",
+          "venue": "Auditorio Nacional",
+          "description": "Celebra el Día del Amor y la Amistad con música y una estancia para dos.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/febrero/jesse-y-joy.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Joy/Auditorio-Nacional-Joy-Cartelera.jpg",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/febrero/jesse-y-joy.html"
+        },
+        {
+          "id": "leyendas-cumbia-febrero-2027",
+          "month": "Febrero",
+          "sortDate": "2027-02-21",
+          "category": "Concierto",
+          "title": "Leyendas de la Cumbia",
+          "date": "21 de febrero · 19:00",
+          "venue": "Auditorio Nacional",
+          "description": "La Sonora Dinamita y Los Socios del Ritmo ponen el baile en tu escapada de febrero.",
+          "url": "https://www.auditorio.com.mx/cartelera/2027/febrero/leyendas-de-la-cumbia.html",
+          "sourceLabel": "Auditorio Nacional",
+          "imageUrl": "https://www.auditorio.com.mx/assets/images/cartelera/2027/Leyendas-de-la-cumbia/LeyendasDeLaCumbia_cartelera.png",
+          "posterUrl": "https://www.auditorio.com.mx/cartelera/2027/febrero/leyendas-de-la-cumbia.html"
+        }
+      ],
+      "mailchimp": {
+        "campaignType": "regular",
+        "tags": [
+          "newsletter",
+          "febrero",
+          "2027",
+          "amor-y-amistad",
+          "jesse-joy",
+          "sin-bandera"
+        ],
+        "mergeTags": [
+          "firstName",
+          "fullName",
+          "company",
+          "email"
+        ],
+        "utmCampaign": "newsletter_febrero_2027_escapada"
+      },
+      "year": 2027
     }
   ]
 }

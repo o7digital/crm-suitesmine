@@ -36,7 +36,7 @@ export default function AdminMailPage() {
   const { token } = useAuth();
   const api = useApi(token);
   const [campaigns, setCampaigns] = useState<NewsletterCampaign[]>(() => mergeCampaignsWithSeed(seed.campaigns));
-  const [campaignId, setCampaignId] = useState(seed.campaigns[0].id);
+  const [campaignId, setCampaignId] = useState('diciembre-fiestas-cdmx');
   const [setup, setSetup] = useState<MailchimpSetup>(emptyMailchimp);
   const [panel, setPanel] = useState<EditorPanel>('contenu');
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
@@ -44,7 +44,7 @@ export default function AdminMailPage() {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [bufferOpen, setBufferOpen] = useState(false);
   const [socialEvent, setSocialEvent] = useState<AnnualEvent | null>(null);
-  const [catalogTargetId, setCatalogTargetId] = useState(seed.campaigns[0].id);
+  const [catalogTargetId, setCatalogTargetId] = useState('diciembre-fiestas-cdmx');
   const [draftsLoaded, setDraftsLoaded] = useState(false);
   const [busy, setBusy] = useState<'save' | 'test' | 'publish' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error' | 'info'; text: string } | null>(null);
@@ -173,7 +173,7 @@ export default function AdminMailPage() {
       const response = await api<MailchimpDraftResponse>('/tenant/newsletter/mailchimp/draft', {
         method: 'POST',
         body: JSON.stringify({
-          campaignTitle: `Suites Mine · ${selected.month} 2026`,
+          campaignTitle: `Suites Mine · ${selected.month} ${selected.year}`,
           subject: selected.subject,
           preheader: selected.preheader,
           html,
@@ -203,7 +203,7 @@ export default function AdminMailPage() {
     const original = seed.campaigns.find((campaign) => campaign.id === selected.id);
     if (!original) return;
     setCampaigns((current) => current.map((campaign) => (campaign.id === selected.id ? hydrateCampaigns([clone(original)])[0] : campaign)));
-    setNotice({ tone: 'info', text: `${selected.month} a été réinitialisé avec le contenu validé du 13 août.` });
+    setNotice({ tone: 'info', text: `${selected.month} ${selected.year} a été réinitialisé avec le contenu du ${formatVerifiedDate(original.lastVerified)}.` });
   };
 
   const downloadHtml = () => {
@@ -289,7 +289,7 @@ export default function AdminMailPage() {
           <BufferStudioModal
             api={api}
             initialConfig={setup.buffer}
-            initialEvent={socialEvent}
+            initialEvent={socialEvent || selected.events[0]}
             events={annualEvents}
             onPersistConfig={persistBufferConfig}
             onClose={() => { setBufferOpen(false); setSocialEvent(null); }}
@@ -300,8 +300,9 @@ export default function AdminMailPage() {
             <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Marketing · Mailchimp</p>
             <h1 className="mt-1 text-3xl font-semibold">Studio newsletter Suites Mine</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              Six campagnes 2026 — dont une édition spéciale pour l’Indépendance du Mexique — avec événements vérifiés, édition
-              complète et aperçu fidèle au design Suites Mine. Le catalogue culturel couvre août à décembre et alimente aussi Buffer.
+              {campaigns.length} campagnes d’août 2026 à février 2027, dont une édition spéciale pour l’Indépendance du Mexique.
+              Décembre, janvier et février sont prêts à consulter : textes, visuels, événements sourcés et aperçu au design Suites Mine.
+              Le catalogue alimente aussi les posts pour Buffer.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -344,7 +345,7 @@ export default function AdminMailPage() {
                         : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                     }`}
                   >
-                    {campaign.month}
+                    {campaign.month} {campaign.year}
                     <span className="ml-2 text-[10px] font-medium uppercase opacity-65">{campaign.status}</span>
                   </button>
                 ))}
@@ -531,7 +532,7 @@ function NewsletterDocumentEditor({
             <input
               aria-label="Nom du document"
               className="w-full min-w-0 bg-transparent text-base font-semibold text-white outline-none sm:w-[360px]"
-              value={`Suites Mine · ${campaign.month} 2026`}
+              value={`Suites Mine · ${campaign.month} ${campaign.year}`}
               readOnly
             />
             <p className="mt-0.5 text-[11px] text-[#d7c6a3]">Brouillon enregistré automatiquement · Cmd/Ctrl + S pour sauvegarder</p>
@@ -896,7 +897,7 @@ function DesignEditor({
           />
         ))}
       </EditorGroup>
-      <EditorGroup title="Galerie" description="Photos communes aux trois campagnes.">
+      <EditorGroup title="Galerie" description="Photos communes aux campagnes.">
         {setup.gallery.map((image, index) => (
           <Field
             key={index}
@@ -1319,7 +1320,8 @@ function mergeCampaignsWithSeed(value: unknown): NewsletterCampaign[] {
   const saved = hydrateCampaigns(value);
   return defaults.map((template) => {
     const draft = saved.find((campaign) => campaign.id === template.id);
-    const merged = draft ? {
+    const refreshReady = draft?.status === 'READY' && !draft.bodyHtml && draft.lastVerified < template.lastVerified;
+    const merged = draft && !refreshReady ? {
       ...template,
       ...draft,
       events: draft.events?.length ? draft.events : template.events,
