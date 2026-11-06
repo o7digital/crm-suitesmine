@@ -129,6 +129,11 @@ export function demoApiResponse(path: string, init?: RequestInit): unknown {
   if (method === 'POST' && cleanPath === '/tenant/social/buffer/post') {
     return { created: [{ channelId: 'demo-instagram' }], failed: [] };
   }
+  if (cleanPath === '/tenant/social/buffer/sync') {
+    return method === 'GET'
+      ? { checkedAt: new Date().toISOString(), posts: [] }
+      : { ok: true, checkedAt: new Date().toISOString(), results: [] };
+  }
   if (method !== 'GET') return { ok: true };
 
   if (cleanPath === '/dashboard') {

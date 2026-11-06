@@ -6,7 +6,7 @@ import { TenantService } from './tenant.service';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
 import { UpdateTenantSettingsDto } from './dto/update-settings.dto';
 import { CreateMailchimpDraftDto, SendNewsletterDto, SendNewsletterTestDto } from './dto/send-newsletter.dto';
-import { CreateBufferPostDto } from './dto/buffer.dto';
+import { CreateBufferPostDto, ImportBufferPostDto, SyncBufferDto } from './dto/buffer.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('tenant')
@@ -61,5 +61,20 @@ export class TenantController {
   @Post('social/buffer/post')
   createBufferPost(@Body() dto: CreateBufferPostDto, @CurrentUser() user: RequestUser) {
     return this.tenantService.createBufferPost(dto, user);
+  }
+
+  @Get('social/buffer/sync')
+  getBufferSync(@CurrentUser() user: RequestUser) {
+    return this.tenantService.getBufferSync(user);
+  }
+
+  @Post('social/buffer/sync')
+  syncBuffer(@Body() dto: SyncBufferDto, @CurrentUser() user: RequestUser) {
+    return this.tenantService.syncBuffer(dto, user);
+  }
+
+  @Post('social/buffer/sync/import')
+  importBufferPost(@Body() dto: ImportBufferPostDto, @CurrentUser() user: RequestUser) {
+    return this.tenantService.importBufferPost(dto.postId, user);
   }
 }

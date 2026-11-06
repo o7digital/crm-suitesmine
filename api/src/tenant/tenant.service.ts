@@ -6,7 +6,8 @@ import { RequestUser } from '../common/user.decorator';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
 import { UpdateTenantSettingsDto } from './dto/update-settings.dto';
 import { CreateMailchimpDraftDto, SendNewsletterDto, SendNewsletterTestDto } from './dto/send-newsletter.dto';
-import { CreateBufferPostDto } from './dto/buffer.dto';
+import { CreateBufferPostDto, SyncBufferDto } from './dto/buffer.dto';
+import { BufferSyncService, crmHash, remoteHash, postFields, type RemotePost } from './buffer-sync.service';
 
 type ContractClientFieldKey =
   | 'firstName'
@@ -89,11 +90,15 @@ type MarketingNewsletterEvent = {
   sourceLabel: string;
   imageUrl?: string;
   posterUrl?: string;
+  month?: string;
+  sortDate?: string;
+  socialText?: string;
 };
 
 type MarketingNewsletterCampaign = {
   id: string;
   month: string;
+  year?: number;
   sendWindow: string;
   segment: string;
   goal: string;
@@ -128,7 +133,7 @@ type NewsletterRecipient = {
 
 @Injectable()
 export class TenantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private bufferSync: BufferSyncService) {}
   private readonly crmDisplayCurrencies = ['USD', 'EUR', 'MXN', 'CAD'] as const;
   private readonly allowedContractClientFields = new Set<ContractClientFieldKey>([
     'firstName',
@@ -361,6 +366,9 @@ export class TenantService {
           url: cleanUrl(event.url) || '',
           sourceLabel: cleanText(event.sourceLabel, 120) || '',
           ...(cleanUrl(event.imageUrl) ? { imageUrl: cleanUrl(event.imageUrl) } : {}),
+          ...(cleanText(event.month, 40) ? { month: cleanText(event.month, 40) } : {}),
+          ...(typeof event.sortDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.sortDate) ? { sortDate: event.sortDate } : {}),
+          ...(cleanText(event.socialText, 5000) ? { socialText: cleanText(event.socialText, 5000) } : {}),
           ...(cleanUrl(event.posterUrl) ? { posterUrl: cleanUrl(event.posterUrl) } : {}),
         });
       }
@@ -372,6 +380,7 @@ export class TenantService {
       newsletterCampaigns.push({
         id,
         month,
+        ...(Number.isInteger(campaign.year) && Number(campaign.year) >= 2020 && Number(campaign.year) <= 2100 ? { year: Number(campaign.year) } : {}),
         sendWindow: cleanText(campaign.sendWindow, 180) || '',
         segment: cleanText(campaign.segment, 800) || '',
         goal: cleanText(campaign.goal, 800) || '',
@@ -717,6 +726,7 @@ export class TenantService {
     try {
       response = await fetch('https://api.buffer.com', {
         method: 'POST',
+        signal: AbortSignal.timeout(20000),
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
@@ -785,6 +795,35 @@ export class TenantService {
     };
   }
 
+  private async bufferSyncContext(user: RequestUser) {
+    await this.ensureAdmin(user);
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: user.tenantId }, select: { marketingSetup: true } });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+    const setup = this.sanitizeMarketingSetup(tenant.marketingSetup) ?? null;
+    const workspace = await this.loadBufferWorkspace(setup);
+    const request = <T>(query: string) => this.bufferRequest<T>(workspace.config.apiKey, query);
+    return { setup, workspace, request };
+  }
+
+  async getBufferSync(user: RequestUser) {
+    const { workspace, request } = await this.bufferSyncContext(user);
+    return this.bufferSync.status(user.tenantId, workspace, request);
+  }
+
+  async syncBuffer(dto: SyncBufferDto, user: RequestUser) {
+    const { setup, workspace, request } = await this.bufferSyncContext(user);
+    const campaigns = (setup?.newsletterCampaigns || []).filter((campaign) => dto.campaignIds.includes(campaign.id));
+    if (new Set(campaigns.map((campaign) => campaign.id)).size !== new Set(dto.campaignIds).size) {
+      throw new BadRequestException('Sauvegardez les campagnes dans le CRM avant de les synchroniser.');
+    }
+    return this.bufferSync.sync(user.tenantId, campaigns, workspace, request);
+  }
+
+  async importBufferPost(postId: string, user: RequestUser) {
+    const { workspace, request } = await this.bufferSyncContext(user);
+    return this.bufferSync.importPost(user.tenantId, postId, workspace, request);
+  }
+
   async createBufferPost(dto: CreateBufferPostDto, user: RequestUser) {
     await this.ensureAdmin(user);
     const tenant = await this.prisma.tenant.findFirst({
@@ -806,40 +845,56 @@ export class TenantService {
       dueAt = parsed.toISOString();
     }
 
-    const results: Array<{ channelId: string; postId: string; dueAt?: string | null }> = [];
-    const failed: Array<{ channelId: string; message: string }> = [];
-    for (const channelId of channelIds) {
-      const channel = workspace.channels.find((item) => item.id === channelId);
-      const scheduling =
-        dto.mode === 'custom'
-          ? `mode: customScheduled, dueAt: ${JSON.stringify(dueAt)}`
-          : 'mode: addToQueue';
-      const service = String(channel?.service || '').toLowerCase();
-      const metadata =
-        service === 'instagram'
-          ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }'
-          : ['facebook', 'threads'].includes(service)
-            ? `metadata: { ${service}: { type: post } }`
-            : '';
-      const assets = dto.imageUrl?.trim()
-        ? `assets: [{ image: { url: ${JSON.stringify(dto.imageUrl.trim())} } }]`
-        : '';
-      const query = `mutation CreatePost { createPost(input: { text: ${JSON.stringify(dto.text.trim())}, channelId: ${JSON.stringify(channelId)}, schedulingType: automatic, ${scheduling} ${metadata} ${assets} }) { ... on PostActionSuccess { post { id dueAt } } ... on MutationError { message } } }`;
-      try {
-        const data = await this.bufferRequest<{
-          createPost?: { post?: { id?: string; dueAt?: string | null }; message?: string };
-        }>(workspace.config.apiKey, query);
-        const result = data.createPost;
-        if (!result?.post?.id) throw new Error(result?.message || 'Buffer n’a pas créé le post.');
-        results.push({ channelId, postId: result.post.id, dueAt: result.post.dueAt });
-      } catch (error) {
-        failed.push({ channelId, message: error instanceof Error ? error.message : 'Échec Buffer' });
+    return this.prisma.$transaction(async (tx) => {
+      const lock = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtext(${`buffer-sync:${user.tenantId}`})) AS locked`;
+      if (!lock[0]?.locked) throw new BadRequestException('Une synchronisation Buffer est déjà en cours.');
+      const event = setup?.newsletterCampaigns?.flatMap((campaign) => campaign.events).find((item) => item.id === dto.eventId);
+      const links = dto.eventId ? await tx.bufferPostLink.findMany({ where: { tenantId: user.tenantId, organizationId: workspace.organization.id, eventId: dto.eventId } }) : [];
+      const remotePosts = links.length ? await this.bufferSync.posts(workspace.organization.id, (query) => this.bufferRequest(workspace.config.apiKey, query)) : [];
+      const results: Array<{ channelId: string; postId: string; dueAt?: string | null }> = [];
+      const failed: Array<{ channelId: string; message: string }> = [];
+      for (const channelId of channelIds) {
+        const channel = workspace.channels.find((item) => item.id === channelId);
+        const scheduling =
+          dto.mode === 'custom'
+            ? `mode: customScheduled, dueAt: ${JSON.stringify(dueAt)}`
+            : 'mode: addToQueue';
+        const service = String(channel?.service || '').toLowerCase();
+        const metadata =
+          service === 'instagram'
+            ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }'
+            : ['facebook', 'threads'].includes(service)
+              ? `metadata: { ${service}: { type: post } }`
+              : '';
+        const assets = dto.imageUrl?.trim()
+          ? `assets: [{ image: { url: ${JSON.stringify(dto.imageUrl.trim())} } }]`
+          : 'assets: []';
+        try {
+          const link = links.find((item) => item.channelId === channelId);
+          if (dto.eventId && !link) throw new Error('Synchronisez ce mois dans le CRM avant de programmer ce post.');
+          if (link && !remotePosts.some((post) => post.id === link.postId && ['draft', 'scheduled', 'buffer'].includes(post.status))) {
+            throw new Error('Ce post est publié, supprimé ou en erreur dans Buffer ; vérifiez son état.');
+          }
+          const operation = link ? 'editPost' : 'createPost';
+          const target = link ? `id: ${JSON.stringify(link.postId)}, saveToDraft: false` : `channelId: ${JSON.stringify(channelId)}`;
+          const query = `mutation SchedulePost { ${operation}(input: { ${target}, text: ${JSON.stringify(dto.text.trim())}, schedulingType: automatic, ${scheduling} ${metadata} ${assets} }) { ... on PostActionSuccess { post { ${postFields} } } ... on MutationError { message } } }`;
+          const data = await this.bufferRequest<{
+            createPost?: { post?: RemotePost; message?: string };
+            editPost?: { post?: RemotePost; message?: string };
+          }>(workspace.config.apiKey, query);
+          const result = data[operation];
+          if (!result?.post?.id) throw new Error(result?.message || 'Buffer n’a pas créé le post.');
+          if (link && event) await tx.bufferPostLink.update({ where: { id: link.id }, data: { crmHash: crmHash(event), remoteHash: remoteHash(result.post), syncedAt: new Date() } });
+          results.push({ channelId, postId: result.post.id, dueAt: result.post.dueAt });
+        } catch (error) {
+          failed.push({ channelId, message: error instanceof Error ? error.message : 'Échec Buffer' });
+        }
       }
-    }
-    if (!results.length) {
-      throw new BadRequestException(failed.map((item) => item.message).join('; ') || 'Aucun post Buffer créé.');
-    }
-    return { ok: failed.length === 0, created: results, failed };
+      if (!results.length) {
+        throw new BadRequestException(failed.map((item) => item.message).join('; ') || 'Aucun post Buffer créé.');
+      }
+      return { ok: failed.length === 0, created: results, failed };
+    }, { timeout: 180000, maxWait: 10000 });
   }
 
   async getBranding(user: RequestUser) {

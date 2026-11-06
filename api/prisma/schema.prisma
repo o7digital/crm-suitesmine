@@ -44,6 +44,24 @@ model Tenant {
   legalAcceptances          LegalAcceptance[]
   googleCalendarConnections GoogleCalendarConnection[]
   clientCollaborators       ClientCollaborator[]
+  bufferPostLinks           BufferPostLink[]
+}
+
+model BufferPostLink {
+  id             String   @id @default(uuid())
+  tenantId       String
+  organizationId String
+  campaignId     String
+  eventId        String
+  channelId      String
+  postId         String
+  crmHash        String
+  remoteHash     String
+  syncedAt       DateTime @default(now())
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, organizationId, eventId, channelId])
+  @@unique([tenantId, organizationId, postId])
 }
 
 enum UserRole {

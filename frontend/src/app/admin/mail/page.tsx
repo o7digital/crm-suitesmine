@@ -9,6 +9,7 @@ import { useApi, useAuth } from '../../../contexts/AuthContext';
 import seed from '../../../lib/newsletterCampaigns.json';
 import annualEventsSeed from '../../../lib/events2026.json';
 import { BufferStudioModal, EventCatalogModal, type AnnualEvent, type BufferConfig } from './CampaignTools';
+import { BufferSyncPanel, syncSummary, type SyncResponse } from './BufferSyncPanel';
 
 type NewsletterEvent = AnnualEvent;
 type NewsletterCampaign = Omit<(typeof seed.campaigns)[number], 'events'> & { bodyHtml?: string; events: NewsletterEvent[] };
@@ -46,6 +47,7 @@ export default function AdminMailPage() {
   const [socialEvent, setSocialEvent] = useState<AnnualEvent | null>(null);
   const [catalogTargetId, setCatalogTargetId] = useState('diciembre-fiestas-cdmx');
   const [draftsLoaded, setDraftsLoaded] = useState(false);
+  const [syncRevision, setSyncRevision] = useState(0);
   const [busy, setBusy] = useState<'save' | 'test' | 'publish' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error' | 'info'; text: string } | null>(null);
 
@@ -53,6 +55,11 @@ export default function AdminMailPage() {
     () => campaigns.find((campaign) => campaign.id === campaignId) ?? campaigns[0],
     [campaignId, campaigns],
   );
+  const socialEvents = useMemo(() => {
+    const events = new Map(annualEvents.map((event) => [event.id, event]));
+    for (const campaign of campaigns) for (const event of campaign.events) events.set(event.id, event);
+    return [...events.values()];
+  }, [campaigns]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,15 +144,24 @@ export default function AdminMailPage() {
   const saveDrafts = async () => {
     setBusy('save');
     setNotice(null);
+    let crmSaved = false;
     try {
       const nextCampaigns = campaigns.map((campaign) =>
         campaign.id === selected.id ? ({ ...campaign, status: 'SAVED' } as NewsletterCampaign) : campaign,
       );
       await persistWorkspace(nextCampaigns);
+      crmSaved = true;
       setCampaigns(nextCampaigns);
       setNotice({ tone: 'ok', text: `${selected.month} a été sauvegardé dans le CRM.` });
+      if (setup.buffer.apiKey) {
+        const response = await api<SyncResponse>('/tenant/social/buffer/sync', {
+          method: 'POST', body: JSON.stringify({ campaignIds: [selected.id] }),
+        });
+        setSyncRevision((value) => value + 1);
+        setNotice({ tone: response.ok ? 'ok' : 'info', text: `${selected.month} sauvegardé · Buffer : ${syncSummary(response)}` });
+      }
     } catch (err) {
-      setNotice({ tone: 'error', text: messageFromError(err, 'Sauvegarde impossible.') });
+      setNotice({ tone: 'error', text: `${crmSaved ? 'Campagne sauvegardée dans le CRM ; synchronisation Buffer à réessayer. ' : ''}${messageFromError(err, 'Sauvegarde ou synchronisation Buffer impossible.')}` });
     } finally {
       setBusy(null);
     }
@@ -275,7 +291,7 @@ export default function AdminMailPage() {
         ) : null}
         {catalogOpen ? (
           <EventCatalogModal
-            events={annualEvents}
+            events={socialEvents}
             campaignNames={campaigns.map(({ id, month }) => ({ id, month }))}
             targetCampaignId={catalogTargetId}
             onTargetCampaign={setCatalogTargetId}
@@ -290,8 +306,14 @@ export default function AdminMailPage() {
             api={api}
             initialConfig={setup.buffer}
             initialEvent={socialEvent || selected.events[0]}
-            events={annualEvents}
+            events={socialEvents}
             onPersistConfig={persistBufferConfig}
+            onPersistPost={async (eventId, patch) => {
+              const next = campaigns.map((campaign) => ({ ...campaign, events: campaign.events.map((event) => event.id === eventId ? { ...event, ...patch } : event) }));
+              await persistWorkspace(next);
+              setCampaigns(next);
+              setSyncRevision((value) => value + 1);
+            }}
             onClose={() => { setBufferOpen(false); setSocialEvent(null); }}
           />
         ) : null}
@@ -325,6 +347,18 @@ export default function AdminMailPage() {
         </div>
 
         {notice ? <Notice notice={notice} /> : null}
+
+        <BufferSyncPanel
+          api={api}
+          campaigns={campaigns.filter((campaign) => campaign.year === 2027 || (campaign.year === 2026 && campaign.month === 'Diciembre'))}
+          configured={!!setup.buffer.apiKey}
+          beforeSync={() => persistWorkspace()}
+          onImported={({ eventId, socialText, imageUrl }) => {
+            setCampaigns((current) => current.map((campaign) => ({ ...campaign, events: campaign.events.map((event) => event.id === eventId ? { ...event, socialText, imageUrl } : event) })));
+            setSyncRevision((value) => value + 1);
+          }}
+          revision={syncRevision}
+        />
 
         <section className="card mb-6 p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

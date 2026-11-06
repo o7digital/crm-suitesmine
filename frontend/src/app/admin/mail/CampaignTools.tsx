@@ -13,6 +13,7 @@ export type CampaignEvent = {
   sourceLabel: string;
   imageUrl?: string;
   posterUrl?: string;
+  socialText?: string;
 };
 
 export type AnnualEvent = CampaignEvent & {
@@ -190,6 +191,7 @@ export function BufferStudioModal({
   initialEvent,
   events,
   onPersistConfig,
+  onPersistPost,
   onClose,
 }: {
   api: ApiClient;
@@ -197,6 +199,7 @@ export function BufferStudioModal({
   initialEvent?: AnnualEvent | null;
   events: AnnualEvent[];
   onPersistConfig: (config: BufferConfig) => Promise<void>;
+  onPersistPost: (eventId: string, patch: { socialText: string; imageUrl: string }) => Promise<void>;
   onClose: () => void;
 }) {
   const defaultEvent = initialEvent || events.find((event) => event.month === 'Diciembre') || null;
@@ -237,9 +240,11 @@ export function BufferStudioModal({
     setBusy('post');
     setNotice(null);
     try {
+      if (selectedEventId) await onPersistPost(selectedEventId, { socialText: text, imageUrl: imageUrl.trim() });
       const result = await api<{ created: Array<{ channelId: string }>; failed: Array<{ channelId: string; message: string }> }>('/tenant/social/buffer/post', {
         method: 'POST',
         body: JSON.stringify({
+          eventId: selectedEventId || undefined,
           text,
           imageUrl: imageUrl.trim() || undefined,
           channelIds: selectedChannelIds,
@@ -249,7 +254,7 @@ export function BufferStudioModal({
       });
       setNotice({
         tone: result.failed.length ? 'error' : 'ok',
-        text: `${result.created.length} post(s) créé(s) dans Buffer${result.failed.length ? ` · ${result.failed.length} échec(s)` : ''}.`,
+        text: `${result.created.length} post(s) programmé(s) dans Buffer${result.failed.length ? ` · ${result.failed.length} échec(s) : ${result.failed.map((item) => item.message).join('; ')}` : ''}.`,
       });
     } catch (error) {
       setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Programmation Buffer impossible.' });
@@ -405,6 +410,7 @@ export function BufferStudioModal({
 }
 
 function socialTextForEvent(event: AnnualEvent) {
+  if (event.socialText) return event.socialText;
   if (event.id === 'grito-independencia-zocalo-2026') {
     return `🇲🇽 Celebra el Grito de Independencia en el corazón de Ciudad de México.\n\n📅 ${event.date}\n📍 ${event.venue}\n\nVive las Fiestas Patrias desde Suites Mine, a solo dos calles del Ángel de la Independencia.\n\nInformación oficial: ${event.url}\nReserva tu estancia: https://www.suitesmine.com/`;
   }
