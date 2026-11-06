@@ -119,6 +119,26 @@ function setup(remote: RemotePost[] = [], linked = false) {
   };
 }
 describe('Buffer synchronization', () => {
+  it.each(['facebook', 'instagram'])(
+    'supplies required %s metadata when editing a legacy draft',
+    async (serviceName) => {
+      const { service, request } = setup([post()], true);
+      await service.sync(
+        'tenant',
+        [{ ...campaign, events: [{ ...event, venue: 'Lieu corrigé' }] }],
+        {
+          ...workspace,
+          channels: [{ ...workspace.channels[0], service: serviceName }],
+        },
+        request,
+      );
+      const query = request.mock.calls.find(([query]) =>
+        query.includes('editPost('),
+      )![0];
+      expect(query).toContain(`metadata: { ${serviceName}: { type: post`);
+      expect(query).not.toMatch(/mode:|dueAt:|saveToDraft:/);
+    },
+  );
   it('imports a Buffer edit into the CRM and acknowledges that version', async () => {
     const { service, request, tx } = setup(
       [post({ text: 'Version approuvée Buffer' })],

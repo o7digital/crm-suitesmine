@@ -161,6 +161,13 @@ export class BufferSyncService {
               const key = `${event.id}:${channel.id}`;
               if (processed.has(key)) continue;
               processed.add(key);
+              const service = channel.service.toLowerCase();
+              const metadata =
+                service === 'instagram'
+                  ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }'
+                  : ['facebook', 'threads'].includes(service)
+                    ? `metadata: { ${service}: { type: post } }`
+                    : '';
               const result = { eventId: event.id, channelId: channel.id };
               const link = links.find(
                 (item) =>
@@ -264,7 +271,7 @@ export class BufferSyncService {
                     const data = await request<{
                       editPost: { post?: RemotePost; message?: string };
                     }>(
-                      `mutation SyncDraft { editPost(input: { id: ${JSON.stringify(post.id)}, text: ${JSON.stringify(socialTextForEvent(event))}, ${assets} }) { ... on PostActionSuccess { post { ${postFields} } } ... on MutationError { message } } }`,
+                      `mutation SyncDraft { editPost(input: { id: ${JSON.stringify(post.id)}, text: ${JSON.stringify(socialTextForEvent(event))}, ${metadata} ${assets} }) { ... on PostActionSuccess { post { ${postFields} } } ... on MutationError { message } } }`,
                     );
                     if (!data.editPost.post)
                       throw new Error(
@@ -281,13 +288,6 @@ export class BufferSyncService {
                     !/^\d{4}-\d{2}-\d{2}$/.test(event.sortDate)
                   )
                     throw new Error('La date de cet événement est requise.');
-                  const service = channel.service.toLowerCase();
-                  const metadata =
-                    service === 'instagram'
-                      ? 'metadata: { instagram: { type: post, shouldShareToFeed: true } }'
-                      : ['facebook', 'threads'].includes(service)
-                        ? `metadata: { ${service}: { type: post } }`
-                        : '';
                   const assets = event.imageUrl
                     ? `assets: [{ image: { url: ${JSON.stringify(event.imageUrl)} } }]`
                     : '';
