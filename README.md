@@ -67,3 +67,13 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Agendas des sites depuis le CRM
+
+Dans `/admin/mail`, **Ajouter un mois** crée une campagne persistante pour le mois et l’année choisis. Le panneau **Agenda des sites** permet de préparer les événements séparément pour Suites Mine et Business Suites Kepler, en ES/EN/中文. **Enregistrer la préparation** conserve les brouillons privés ; **Valider et programmer ce mois** publie un instantané validé et crée ou met à jour le lien public de présentation de la newsletter. Les liens déjà partagés conservent leur adresse.
+
+Le serveur sélectionne à chaque requête le mois courant dans `America/Mexico_City`. Un mois validé devient donc public à 00 h le premier jour, sans tâche planifiée, onglet admin ouvert ou nouveau déploiement des sites. Un mois non validé reste vide ; le programme précédent ne réapparaît pas. Les sites relisent leur flux au chargement, toutes les minutes et au retour dans un onglet. Les nouvelles modifications restent privées jusqu’à une nouvelle validation.
+
+Les tables `WebsiteAgenda` et `WebsiteAgendaMonth` isolent les sites par tenant et séparent préparation et publication. Les associations domaine/tenant sont configurées côté serveur. Les routes administrateur nécessitent le rôle OWNER/ADMIN et une version de préparation à jour. Le flux public `/api/public/website-agendas/:id/current` expose uniquement le mois courant validé ; les visuels officiels autorisés sont servis en WebP. Les liens `/agenda/...` destinés à la présentation restent consultables en avance.
+
+Vérifications : `cd api && npm test -- --runInBand && npm run build`, puis `cd frontend && node --test tests/*.test.cjs && npm run build`.

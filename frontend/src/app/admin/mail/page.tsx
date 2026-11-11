@@ -11,9 +11,9 @@ import annualEventsSeed from '../../../lib/events2026.json';
 import { BufferStudioModal, EventCatalogModal, type AnnualEvent, type BufferConfig } from './CampaignTools';
 import { BufferSyncPanel, syncSummary, type SyncResponse } from './BufferSyncPanel';
 import { PublicSharingPanel } from './PublicSharingPanel';
+import { WebsiteAgendaPanel } from './WebsiteAgendaPanel';
+import { hydrateCampaigns, mergeCampaignsWithSeed, createMonthlyCampaign, campaignMonthKey, type NewsletterEvent, type NewsletterCampaign } from '../../../lib/campaignWorkspace';
 
-type NewsletterEvent = AnnualEvent;
-type NewsletterCampaign = Omit<(typeof seed.campaigns)[number], 'events'> & { bodyHtml?: string; events: NewsletterEvent[] };
 type MailchimpSetup = typeof seed.mailchimp & { newsletterCampaigns?: NewsletterCampaign[]; buffer: BufferConfig };
 type EditorPanel = 'contenu' | 'evenements' | 'design' | 'mailchimp';
 type PreviewMode = 'desktop' | 'mobile';
@@ -39,6 +39,7 @@ export default function AdminMailPage() {
   const api = useApi(token);
   const [campaigns, setCampaigns] = useState<NewsletterCampaign[]>(() => mergeCampaignsWithSeed(seed.campaigns));
   const [campaignId, setCampaignId] = useState('diciembre-fiestas-cdmx');
+  const [newMonth, setNewMonth] = useState('');
   const [setup, setSetup] = useState<MailchimpSetup>(emptyMailchimp);
   const [panel, setPanel] = useState<EditorPanel>('contenu');
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
@@ -49,6 +50,7 @@ export default function AdminMailPage() {
   const [catalogTargetId, setCatalogTargetId] = useState('diciembre-fiestas-cdmx');
   const [draftsLoaded, setDraftsLoaded] = useState(false);
   const [syncRevision, setSyncRevision] = useState(0);
+  const [publicationRevision, setPublicationRevision] = useState(0);
   const [busy, setBusy] = useState<'save' | 'test' | 'publish' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error' | 'info'; text: string } | null>(null);
 
@@ -323,9 +325,8 @@ export default function AdminMailPage() {
             <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Marketing · Mailchimp</p>
             <h1 className="mt-1 text-3xl font-semibold">Studio newsletter Suites Mine</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              {campaigns.length} campagnes d’août 2026 à février 2027, dont une édition spéciale pour l’Indépendance du Mexique.
-              Décembre, janvier et février sont prêts à consulter : textes, visuels, événements sourcés et aperçu au design Suites Mine.
-              Le catalogue alimente aussi les posts pour Buffer.
+              {campaigns.length} campagnes. Ajoutez un mois, préparez ses événements puis validez son agenda dans les trois langues pour les sites.
+              Les mois validés s’affichent automatiquement à leur date. Le catalogue alimente aussi les posts pour Buffer.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -365,6 +366,24 @@ export default function AdminMailPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Campagnes newsletter</p>
+              <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={async (event) => {
+                event.preventDefault();
+                if (!newMonth) return;
+                const existing = campaigns.find((campaign) => campaignMonthKey(campaign) === newMonth);
+                if (existing) { setCampaignId(existing.id); setNotice({ tone: 'info', text: 'Ce mois existe déjà : sa campagne est sélectionnée.' }); return; }
+                const campaign = createMonthlyCampaign(newMonth, selected);
+                setBusy('save');
+                try {
+                  const next = [...campaigns, campaign];
+                  await persistWorkspace(next); setCampaigns(next); setCampaignId(campaign.id); setDocumentOpen(false);
+                  setNotice({ tone: 'ok', text: `${campaign.month} ${campaign.year} créé et sauvegardé en brouillon. Préparez ensuite l’agenda des sites ci-dessous.` });
+                } catch (error) { setNotice({ tone: 'error', text: messageFromError(error, 'Création du mois impossible.') }); }
+                finally { setBusy(null); }
+              }}>
+                <label className="text-sm text-slate-300" htmlFor="new-campaign-month">Ajouter un mois</label>
+                <input id="new-campaign-month" type="month" required min="2020-01" max="2099-12" value={newMonth} onChange={(event) => setNewMonth(event.target.value)} className="min-h-11 rounded-lg border border-white/15 bg-black/20 px-3 text-base text-white" />
+                <button type="submit" disabled={busy !== null || !draftsLoaded} className="btn-secondary min-h-11 text-sm">Créer le mois</button>
+              </form>
               <div className="mt-4 flex flex-wrap gap-2">
                 {campaigns.map((campaign) => (
                   <button
@@ -397,10 +416,15 @@ export default function AdminMailPage() {
           </div>
         </section>
 
-        <PublicSharingPanel selected={selected} campaigns={campaigns} branding={{
+        <PublicSharingPanel revision={publicationRevision} selected={selected} campaigns={campaigns} branding={{
           address: setup.address, phone: setup.phone, websiteUrl: setup.websiteUrl,
           reservationUrl: setup.reservationUrl, heroImage: setup.heroImage, gallery: setup.gallery,
         }} />
+
+        <WebsiteAgendaPanel selected={selected} branding={{
+          address: setup.address, phone: setup.phone, websiteUrl: setup.websiteUrl,
+          reservationUrl: setup.reservationUrl, heroImage: setup.heroImage, gallery: setup.gallery,
+        }} beforeApprove={() => persistWorkspace()} onApproved={() => setPublicationRevision((revision) => revision + 1)} />
 
         <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_440px]">
           <section className="card min-w-0 p-4 sm:p-5">
@@ -1330,66 +1354,6 @@ function formatVerifiedDate(value: string) {
 
 function messageFromError(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
-}
-
-function hydrateCampaigns(value: unknown): NewsletterCampaign[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((rawCampaign) => {
-    const campaign = rawCampaign as NewsletterCampaign;
-    return {
-      ...campaign,
-      events: Array.isArray(campaign.events)
-        ? campaign.events.map((event) => {
-            const catalogEvent = annualEvents.find((item) => item.id === event.id);
-            return {
-              ...(catalogEvent || {}),
-              ...event,
-              month: event.month || catalogEvent?.month || campaign.month,
-              sortDate: event.sortDate || catalogEvent?.sortDate || '',
-              imageUrl: event.imageUrl || catalogEvent?.imageUrl,
-              posterUrl: event.posterUrl || catalogEvent?.posterUrl || event.url,
-            } as NewsletterEvent;
-          })
-        : [],
-    };
-  });
-}
-
-function mergeCampaignsWithSeed(value: unknown): NewsletterCampaign[] {
-  const defaults = hydrateCampaigns(clone(seed.campaigns));
-  const saved = hydrateCampaigns(value);
-  return defaults.map((template) => {
-    const draft = saved.find((campaign) => campaign.id === template.id);
-    const refreshReady = draft?.status === 'READY' && !draft.bodyHtml && draft.lastVerified < template.lastVerified;
-    const merged = draft && !refreshReady ? {
-      ...template,
-      ...draft,
-      events: draft.events?.length ? draft.events : template.events,
-      mailchimp: { ...template.mailchimp, ...draft.mailchimp },
-    } as NewsletterCampaign : template;
-    const refreshed = merged.month === 'Octubre'
-      ? {
-          ...merged,
-          subject: template.subject,
-          preheader: template.preheader,
-          headline: template.headline,
-          body: template.body,
-          mailchimp: { ...merged.mailchimp, tags: template.mailchimp.tags },
-        }
-      : merged;
-    const requiredEvents = annualEvents.filter(
-      (event) => event.month === refreshed.month && (event.category === 'Concierto' || event.category === 'Deporte'),
-    );
-    const existingIds = new Set(refreshed.events.map((event) => event.id));
-    return {
-      ...refreshed,
-      events: [...refreshed.events, ...requiredEvents.filter((event) => !existingIds.has(event.id))]
-        .sort((left, right) => {
-          const featured = Number(right.id === 'formula-1-mexico-2026') - Number(left.id === 'formula-1-mexico-2026');
-          return featured || (left.sortDate || '').localeCompare(right.sortDate || '');
-        }),
-    } as NewsletterCampaign;
-  });
 }
 
 function clone<T>(value: T): T {

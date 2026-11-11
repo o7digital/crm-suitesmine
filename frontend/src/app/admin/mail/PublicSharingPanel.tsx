@@ -16,10 +16,11 @@ async function publicationRequest<T>(token: string | null, init?: RequestInit): 
   return data;
 }
 
-export function PublicSharingPanel({ selected, campaigns, branding }: {
+export function PublicSharingPanel({ selected, campaigns, branding, revision = 0 }: {
   selected: Campaign;
   campaigns: Campaign[];
   branding: object;
+  revision?: number;
 }) {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [publications, setPublications] = useState<PublicationSummary[]>([]);
@@ -50,7 +51,7 @@ export function PublicSharingPanel({ selected, campaigns, branding }: {
   useEffect(() => {
     if (isSignedIn) void load();
     else { setPublications([]); setLoaded(false); }
-  }, [isSignedIn, load]);
+  }, [isSignedIn, load, revision]);
 
   const publish = async () => {
     setBusy(true); setError(''); setNotice('');

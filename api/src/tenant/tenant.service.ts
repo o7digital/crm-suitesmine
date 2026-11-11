@@ -341,7 +341,8 @@ export class TenantService {
         : null;
 
     const newsletterCampaigns: MarketingNewsletterCampaign[] = [];
-    for (const rawCampaign of rawCampaigns.slice(0, 12)) {
+    if (rawCampaigns.length > 240) throw new BadRequestException('Le workspace contient au maximum 240 campagnes. Archivez une ancienne campagne avant d’en ajouter.');
+    for (const rawCampaign of rawCampaigns) {
       if (!rawCampaign || typeof rawCampaign !== 'object') continue;
       const campaign = rawCampaign as Record<string, unknown>;
       const id = cleanText(campaign.id, 100);
@@ -350,7 +351,8 @@ export class TenantService {
 
       const events: MarketingNewsletterEvent[] = [];
       const rawEvents = Array.isArray(campaign.events) ? campaign.events : [];
-      for (const rawEvent of rawEvents.slice(0, 20)) {
+      if (rawEvents.length > 100) throw new BadRequestException('Une campagne contient au maximum 100 événements.');
+      for (const rawEvent of rawEvents) {
         if (!rawEvent || typeof rawEvent !== 'object') continue;
         const event = rawEvent as Record<string, unknown>;
         const eventId = cleanText(event.id, 100);

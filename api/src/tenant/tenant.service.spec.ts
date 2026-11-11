@@ -34,4 +34,12 @@ describe('Marketing workspace persistence', () => {
       socialText: 'Texto aprobado para Buffer',
     });
   });
+  it('retains more than a year of campaigns and over twenty events', () => {
+    const service = new TenantService({} as PrismaService, {} as BufferSyncService);
+    const campaigns = Array.from({ length: 24 }, (_, i) => ({ id: `month-${i}`, month: 'Marzo', year: 2027, events: Array.from({ length: 30 }, (_, j) => ({ id: `event-${j}`, title: 'Evento' })) }));
+    const result = (service as any).sanitizeMarketingSetup({ provider: 'MAILCHIMP', newsletterCampaigns: campaigns });
+    expect(result.newsletterCampaigns).toHaveLength(24);
+    expect(result.newsletterCampaigns[23].events).toHaveLength(30);
+  });
+
 });

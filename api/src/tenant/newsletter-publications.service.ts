@@ -91,17 +91,17 @@ export class NewsletterPublicationsService {
     });
   }
 
-  async publish(dto: PublishNewsletterDto, user: RequestUser) {
+  async publish(dto: PublishNewsletterDto, user: RequestUser, db: Prisma.TransactionClient = this.prisma) {
     await this.ensurePublisher(user);
     const snapshot = newsletterSnapshot(dto);
-    const existing = await this.prisma.newsletterPublication.findUnique({
+    const existing = await db.newsletterPublication.findUnique({
       where: { tenantId_campaignId: { tenantId: user.tenantId, campaignId: dto.campaignId } },
       select: { monthKey: true },
     });
     if (existing && existing.monthKey !== snapshot.monthKey) {
       throw new BadRequestException('Créez une autre campagne pour publier un autre mois. Le lien existant est conservé.');
     }
-    return this.prisma.newsletterPublication.upsert({
+    return db.newsletterPublication.upsert({
       where: { tenantId_campaignId: { tenantId: user.tenantId, campaignId: dto.campaignId } },
       create: { tenantId: user.tenantId, campaignId: dto.campaignId, monthKey: snapshot.monthKey, snapshot: snapshot as Prisma.InputJsonValue },
       // Stable identifiers keep already shared links working after updates.

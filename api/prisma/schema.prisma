@@ -46,6 +46,31 @@ model Tenant {
   clientCollaborators       ClientCollaborator[]
   bufferPostLinks           BufferPostLink[]
   newsletterPublications    NewsletterPublication[]
+  websiteAgendas            WebsiteAgenda[]
+}
+
+model WebsiteAgenda {
+  id       String   @id @default(uuid())
+  tenantId String
+  siteKey  String   @unique
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  months   WebsiteAgendaMonth[]
+}
+
+model WebsiteAgendaMonth {
+  id         String   @id @default(uuid())
+  agendaId   String
+  monthKey   String
+  campaignId String
+  draft      Json
+  approved   Json?
+  approvedAt DateTime?
+  approvedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  agenda     WebsiteAgenda @relation(fields: [agendaId], references: [id], onDelete: Cascade)
+
+  @@unique([agendaId, monthKey])
 }
 
 model NewsletterPublication {
