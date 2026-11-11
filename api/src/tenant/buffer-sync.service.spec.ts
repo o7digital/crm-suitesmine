@@ -5,6 +5,7 @@ import {
   socialTextForEvent,
   type RemotePost,
 } from './buffer-sync.service';
+import { InstagramImagesService } from './instagram-images.service';
 import { PrismaService } from '../prisma/prisma.service';
 const event = {
   id: 'tamayo-enero',
@@ -113,12 +114,21 @@ function setup(remote: RemotePost[] = [], linked = false) {
     return { createPost: { post: created } };
   });
   return {
-    service: new BufferSyncService(prisma as unknown as PrismaService),
+    service: new BufferSyncService(prisma as unknown as PrismaService, { prepare: jest.fn(async source => `https://images.example/1080.jpg?source=${encodeURIComponent(source)}`) } as unknown as InstagramImagesService),
     request,
     tx,
   };
 }
 describe('Buffer synchronization', () => {
+  it('prepares Instagram images before creating drafts, while preserving Facebook images', async () => {
+    const { service, request } = setup();
+    await service.sync('tenant', [campaign], workspace, request);
+    const query = request.mock.calls.find(([query]) => query.includes('createPost('))![0];
+    expect(query).toContain('https://images.example/1080.jpg');
+    expect(query).toContain('saveToDraft: true');
+    expect(await service.imageForChannel(event.imageUrl, 'facebook')).toBe(event.imageUrl);
+  });
+
   it.each(['facebook', 'instagram'])(
     'supplies required %s metadata when editing a legacy draft',
     async (serviceName) => {

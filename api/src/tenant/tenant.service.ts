@@ -868,15 +868,15 @@ export class TenantService {
             : ['facebook', 'threads'].includes(service)
               ? `metadata: { ${service}: { type: post } }`
               : '';
-        const assets = dto.imageUrl?.trim()
-          ? `assets: [{ image: { url: ${JSON.stringify(dto.imageUrl.trim())} } }]`
-          : 'assets: []';
         try {
           const link = links.find((item) => item.channelId === channelId);
           if (dto.eventId && !link) throw new Error('Synchronisez ce mois dans le CRM avant de programmer ce post.');
           if (link && !remotePosts.some((post) => post.id === link.postId && ['draft', 'scheduled', 'buffer'].includes(post.status))) {
             throw new Error('Ce post est publié, supprimé ou en erreur dans Buffer ; vérifiez son état.');
           }
+          const imageUrl = await this.bufferSync.imageForChannel(dto.imageUrl?.trim(), service);
+          const assets = imageUrl ? `assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]` : 'assets: []';
+
           const operation = link ? 'editPost' : 'createPost';
           const target = link ? `id: ${JSON.stringify(link.postId)}, saveToDraft: false` : `channelId: ${JSON.stringify(channelId)}`;
           const query = `mutation SchedulePost { ${operation}(input: { ${target}, text: ${JSON.stringify(dto.text.trim())}, schedulingType: automatic, ${scheduling} ${metadata} ${assets} }) { ... on PostActionSuccess { post { ${postFields} } } ... on MutationError { message } } }`;

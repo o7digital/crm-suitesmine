@@ -1,3 +1,5 @@
+import { InstagramImagesService } from './instagram-images.service';
+import { InstagramImagesController } from './instagram-images.controller';
 import { Module } from '@nestjs/common';
 import { TenantController } from './tenant.controller';
 import { TenantService } from './tenant.service';
@@ -9,8 +11,8 @@ import { WebsiteAgendasService } from './website-agendas.service';
 import { WebsiteAgendaImagesService } from './website-agenda-images.service';
 
 @Module({
-  controllers: [TenantController, NewsletterPublicationsController, PublicNewslettersController, WebsiteAgendasController, PublicWebsiteAgendasController],
-  providers: [TenantService, BufferSyncService, NewsletterPublicationsService, WebsiteAgendasService, WebsiteAgendaImagesService],
+  controllers: [InstagramImagesController, TenantController, NewsletterPublicationsController, PublicNewslettersController, WebsiteAgendasController, PublicWebsiteAgendasController],
+  providers: [InstagramImagesService, TenantService, BufferSyncService, NewsletterPublicationsService, WebsiteAgendasService, WebsiteAgendaImagesService],
 })
 export class TenantModule {}
 

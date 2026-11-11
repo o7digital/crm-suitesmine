@@ -1,3 +1,4 @@
+import { InstagramImagesService } from './instagram-images.service';
 import {
   BadRequestException,
   ConflictException,
@@ -64,7 +65,12 @@ export const crmHash = (event: SyncEvent) =>
 
 @Injectable()
 export class BufferSyncService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly images: InstagramImagesService) {}
+
+  async imageForChannel(source: string | undefined, service: string) {
+    if (!source) return '';
+    return service.toLowerCase() === 'instagram' ? this.images.prepare(source) : source;
+  }
 
   async posts(organizationId: string, request: BufferRequest) {
     const posts: RemotePost[] = [];
@@ -265,8 +271,9 @@ export class BufferSyncService {
                     continue;
                   }
                   if (crmChanged) {
-                    const assets = event.imageUrl
-                      ? `assets: [{ image: { url: ${JSON.stringify(event.imageUrl)} } }]`
+                    const imageUrl = await this.imageForChannel(event.imageUrl, service);
+                    const assets = imageUrl
+                      ? `assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`
                       : 'assets: []';
                     const data = await request<{
                       editPost: { post?: RemotePost; message?: string };
@@ -288,8 +295,9 @@ export class BufferSyncService {
                     !/^\d{4}-\d{2}-\d{2}$/.test(event.sortDate)
                   )
                     throw new Error('La date de cet événement est requise.');
-                  const assets = event.imageUrl
-                    ? `assets: [{ image: { url: ${JSON.stringify(event.imageUrl)} } }]`
+                  const imageUrl = await this.imageForChannel(event.imageUrl, service);
+                  const assets = imageUrl
+                    ? `assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`
                     : '';
                   const data = await request<{
                     createPost: { post?: RemotePost; message?: string };
