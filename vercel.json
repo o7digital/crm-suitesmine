@@ -5,6 +5,14 @@
   ],
   "routes": [
     { "src": "/clients/([^/]+)", "status": 307, "headers": { "Location": "/clients?clientId=$1" } },
+    {
+      "src": "/agenda/(?<nxtPmonth>[^/]+?)/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?",
+      "dest": "/frontend/agenda/[month]/[id]$rscSuffix?nxtPmonth=$nxtPmonth&nxtPid=$nxtPid"
+    },
+    {
+      "src": "/agenda/(?<nxtPmonth>[^/]+?)/(?<nxtPid>[^/]+?)(?:/)?",
+      "dest": "/frontend/agenda/[month]/[id]?nxtPmonth=$nxtPmonth&nxtPid=$nxtPid"
+    },
     { "src": "/(.*)", "dest": "frontend/$1" }
   ]
 }
