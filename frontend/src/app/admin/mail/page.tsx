@@ -12,7 +12,7 @@ import { BufferStudioModal, EventCatalogModal, type AnnualEvent, type BufferConf
 import { BufferSyncPanel, syncSummary, type SyncResponse } from './BufferSyncPanel';
 import { PublicSharingPanel } from './PublicSharingPanel';
 import { WebsiteAgendaPanel } from './WebsiteAgendaPanel';
-import { hydrateCampaigns, mergeCampaignsWithSeed, createMonthlyCampaign, campaignMonthKey, type NewsletterEvent, type NewsletterCampaign } from '../../../lib/campaignWorkspace';
+import { hydrateCampaigns, mergeCampaignsWithSeed, createMonthlyCampaign, campaignMonthKey, campaignsForBufferSync, type NewsletterEvent, type NewsletterCampaign } from '../../../lib/campaignWorkspace';
 
 type MailchimpSetup = typeof seed.mailchimp & { newsletterCampaigns?: NewsletterCampaign[]; buffer: BufferConfig };
 type EditorPanel = 'contenu' | 'evenements' | 'design' | 'mailchimp';
@@ -352,7 +352,7 @@ export default function AdminMailPage() {
 
         <BufferSyncPanel
           api={api}
-          campaigns={campaigns.filter((campaign) => campaign.year === 2027 || (campaign.year === 2026 && campaign.month === 'Diciembre'))}
+          campaigns={campaignsForBufferSync(campaigns)}
           configured={!!setup.buffer.apiKey}
           beforeSync={() => persistWorkspace()}
           onImported={({ eventId, socialText, imageUrl }) => {

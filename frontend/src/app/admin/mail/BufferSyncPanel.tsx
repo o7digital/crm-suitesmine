@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { bufferSyncBatches } from '@/lib/campaignWorkspace';
 
 type ApiClient = <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
 type SyncPost = {
@@ -45,8 +46,15 @@ export function BufferSyncPanel({ api, campaigns, configured, beforeSync, onImpo
     setBusy(true); setNotice(''); setResults([]);
     try {
       await beforeSync();
-      const response = await api<SyncResponse>('/tenant/social/buffer/sync', { method: 'POST', body: JSON.stringify({ campaignIds }) });
-      setResults(response.results); setNotice(syncSummary(response));
+      const response: SyncResponse = { ok: true, checkedAt: '', results: [] };
+      for (const batch of bufferSyncBatches(campaignIds)) {
+        const result = await api<SyncResponse>('/tenant/social/buffer/sync', { method: 'POST', body: JSON.stringify({ campaignIds: batch }) });
+        response.ok = response.ok && result.ok;
+        response.checkedAt = result.checkedAt;
+        response.results.push(...result.results);
+        setResults([...response.results]);
+      }
+      setNotice(syncSummary(response));
       await load();
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Synchronisation impossible.'); }
     finally { setBusy(false); }
@@ -68,11 +76,11 @@ export function BufferSyncPanel({ api, campaigns, configured, beforeSync, onImpo
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">CRM Mailing ↔ Buffer</h2>
-          <p className="mt-1 text-sm text-slate-300">Les événements du mailing alimentent les brouillons Facebook et Instagram. Les statuts et modifications Buffer remontent ici.</p>
+          <p className="mt-1 text-sm text-slate-300">Le mois courant et les mois suivants alimentent les brouillons Facebook et Instagram. Les statuts et modifications Buffer remontent ici.</p>
           <p className="mt-1 text-xs text-slate-400">La synchronisation conserve les dates des brouillons existants et les publications programmées. Les nouveaux posts restent en brouillon.</p>
         </div>
-        <button type="button" disabled={!configured || busy} onClick={() => void sync(campaigns.map((campaign) => campaign.id))} className="btn-primary text-sm">
-          {busy ? 'Synchronisation…' : 'Synchroniser décembre → février'}
+        <button type="button" disabled={!configured || busy || !campaigns.length} onClick={() => void sync(campaigns.map((campaign) => campaign.id))} className="btn-primary text-sm">
+          {busy ? 'Synchronisation…' : 'Synchroniser les mois affichés'}
         </button>
       </div>
       {!configured ? <p className="mt-3 text-sm text-amber-200">Connecte Buffer dans « Réseaux · Buffer » pour synchroniser les campagnes.</p> : null}

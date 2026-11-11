@@ -77,3 +77,5 @@ Le serveur sélectionne à chaque requête le mois courant dans `America/Mexico_
 Les tables `WebsiteAgenda` et `WebsiteAgendaMonth` isolent les sites par tenant et séparent préparation et publication. Les associations domaine/tenant sont configurées côté serveur. Les routes administrateur nécessitent le rôle OWNER/ADMIN et une version de préparation à jour. Le flux public `/api/public/website-agendas/:id/current` expose uniquement le mois courant validé ; les visuels officiels autorisés sont servis en WebP. Les liens `/agenda/...` destinés à la présentation restent consultables en avance.
 
 Vérifications : `cd api && npm test -- --runInBand && npm run build`, puis `cd frontend && node --test tests/*.test.cjs && npm run build`.
+
+Le panneau **CRM Mailing ↔ Buffer** inclut le mois courant à l’heure de Mexico et toutes les campagnes futures, dans l’ordre chronologique. **Synchroniser les mois affichés** prépare les brouillons Facebook/Instagram ; les campagnes sont envoyées par groupes de douze pour respecter la limite de l’API. Les publications programmées ou déjà publiées sont conservées. Une nouvelle synchronisation réutilise les posts déjà reliés.

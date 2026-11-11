@@ -39,3 +39,23 @@ test('requires full translations before validation and invalidates translations 
   const changed = agenda.importCampaignEvents(campaign, '2027-03', [event]);
   assert.equal(changed[0].description.en, ''); assert.equal(changed[0].title.en, 'Approved English');
 });
+
+test('Buffer sync includes November, all future years and both November Estadio GNP events', () => {
+  const future = workspace.createMonthlyCampaign('2028-03', seed.campaigns[0]);
+  const campaigns = workspace.mergeCampaignsWithSeed([...seed.campaigns, future]);
+  const visible = workspace.campaignsForBufferSync(campaigns, new Date('2026-11-11T12:00:00Z'));
+  assert.deepEqual(visible.map(c => workspace.campaignMonthKey(c)), ['2026-11', '2026-12', '2027-01', '2027-02', '2028-03']);
+  const november = visible[0];
+  assert.deepEqual(november.events.filter(e => /Estadio GNP/.test(e.venue)).map(e => e.id).sort(), ['autenticos-caligaris-noviembre', 'karol-g-noviembre']);
+});
+test('Buffer sync uses Mexico midnight at the year change', () => {
+  const campaigns = workspace.mergeCampaignsWithSeed(seed.campaigns);
+  assert.equal(workspace.campaignMonthKey(workspace.campaignsForBufferSync(campaigns, new Date('2027-01-01T05:59:59Z'))[0]), '2026-12');
+  assert.equal(workspace.campaignMonthKey(workspace.campaignsForBufferSync(campaigns, new Date('2027-01-01T06:00:00Z'))[0]), '2027-01');
+});
+test('Buffer batches keep every campaign while respecting the API limit', () => {
+  const ids = Array.from({ length: 25 }, (_, i) => `month-${i}`);
+  const batches = workspace.bufferSyncBatches(ids);
+  assert.deepEqual(batches.map(batch => batch.length), [12, 12, 1]);
+  assert.deepEqual(batches.flat(), ids);
+});
