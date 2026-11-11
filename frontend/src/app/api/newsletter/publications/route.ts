@@ -1,14 +1,15 @@
-import { auth } from '@clerk/nextjs/server';
 import { newsletterBackend } from '@/lib/newsletterBackend';
 
 export const dynamic = 'force-dynamic';
 
 async function proxy(request: Request) {
-  const session = await auth();
-  if (!session.userId) return Response.json({ message: 'Connectez-vous pour publier une page.' }, { status: 401 });
-  const token = await session.getToken();
-  if (!token) return Response.json({ message: 'Votre session a expiré.' }, { status: 401 });
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const authorization = request.headers.get('authorization');
+  if (!authorization || !/^Bearer \S+$/.test(authorization)) {
+    return Response.json({ message: 'Connectez-vous pour publier une page.' }, { status: 401 });
+  }
+  // The API's JWT guard verifies the Clerk token and workspace membership.
+  // Forward the token explicitly so this also works with legacy Vercel routing.
+  const headers = { Authorization: authorization, 'Content-Type': 'application/json' };
   try {
     const boot = await fetch(`${newsletterBackend()}/bootstrap`, {
       method: 'POST', headers, cache: 'no-store', signal: AbortSignal.timeout(20000),

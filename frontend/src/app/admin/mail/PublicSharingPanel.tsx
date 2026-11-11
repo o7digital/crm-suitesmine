@@ -6,9 +6,10 @@ import { publicationPath, type PublicationSummary } from '@/lib/newsletterPublic
 
 type Campaign = { id: string; month: string; year: number; headline: string };
 
-async function publicationRequest<T>(init?: RequestInit): Promise<T> {
+async function publicationRequest<T>(token: string | null, init?: RequestInit): Promise<T> {
+  if (!token) throw new Error('Connectez-vous pour publier une page.');
   const response = await fetch('/api/newsletter/publications', {
-    ...init, headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+    ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, cache: 'no-store',
   });
   const data = await response.json();
   if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(' · ') : data.message || 'Publication impossible.');
@@ -20,7 +21,7 @@ export function PublicSharingPanel({ selected, campaigns, branding }: {
   campaigns: Campaign[];
   branding: object;
 }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [publications, setPublications] = useState<PublicationSummary[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,11 +36,11 @@ export function PublicSharingPanel({ selected, campaigns, branding }: {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      setPublications(await publicationRequest<PublicationSummary[]>());
+      setPublications(await publicationRequest<PublicationSummary[]>(await getToken()));
       setLoaded(true);
     } catch (err) { setError(err instanceof Error ? err.message : 'Lecture des publications impossible.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [getToken]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -54,7 +55,7 @@ export function PublicSharingPanel({ selected, campaigns, branding }: {
   const publish = async () => {
     setBusy(true); setError(''); setNotice('');
     try {
-      const publication = await publicationRequest<PublicationSummary>({
+      const publication = await publicationRequest<PublicationSummary>(await getToken(), {
         method: 'POST', body: JSON.stringify({ campaignId: selected.id, campaign: selected, branding }),
       });
       setPublications((items) => [...items.filter((item) => item.campaignId !== publication.campaignId), publication]);
