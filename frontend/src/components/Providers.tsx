@@ -2,13 +2,17 @@
 
 import { ReactNode } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
 import { AuthProvider } from '../contexts/AuthContext';
 import { BrandingProvider } from '../contexts/BrandingContext';
 import { I18nProvider } from '../contexts/I18nContext';
 
 export function Providers({ children }: { children: ReactNode }) {
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+  const pathname = usePathname();
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+  // Public newsletters must render without a CRM session or Clerk configuration.
+  if (pathname.startsWith('/agenda/')) return <>{children}</>;
 
   if (!hasClerk) {
     return (
@@ -31,8 +35,6 @@ export function Providers({ children }: { children: ReactNode }) {
       </AuthProvider>
     </I18nProvider>
   );
-
-  if (demoMode) return content;
 
   return <ClerkProvider>{content}</ClerkProvider>;
 }

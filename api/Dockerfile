@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile scoped to the API directory
 
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
@@ -12,7 +12,7 @@ RUN npm ci && npx prisma generate
 COPY src ./src
 RUN npm run build
 
-FROM node:20-slim
+FROM node:22-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

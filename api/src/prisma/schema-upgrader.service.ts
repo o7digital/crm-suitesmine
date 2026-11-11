@@ -24,6 +24,25 @@ export class SchemaUpgraderService {
     await this.ensureTenantBrandingFields();
     await this.ensureTenantCrmSettingsFields();
     await this.ensureGoogleCalendarConnectionSchema();
+    await this.ensureNewsletterPublications();
+  }
+
+  private async ensureNewsletterPublications() {
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "NewsletterPublication" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        "campaignId" TEXT NOT NULL,
+        "monthKey" TEXT NOT NULL,
+        "snapshot" JSONB NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL
+      )
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "NewsletterPublication_tenantId_campaignId_key"
+      ON "NewsletterPublication"("tenantId", "campaignId")
+    `);
   }
 
   private async tableExists(table: string) {

@@ -10,6 +10,7 @@ import seed from '../../../lib/newsletterCampaigns.json';
 import annualEventsSeed from '../../../lib/events2026.json';
 import { BufferStudioModal, EventCatalogModal, type AnnualEvent, type BufferConfig } from './CampaignTools';
 import { BufferSyncPanel, syncSummary, type SyncResponse } from './BufferSyncPanel';
+import { PublicSharingPanel } from './PublicSharingPanel';
 
 type NewsletterEvent = AnnualEvent;
 type NewsletterCampaign = Omit<(typeof seed.campaigns)[number], 'events'> & { bodyHtml?: string; events: NewsletterEvent[] };
@@ -395,6 +396,11 @@ export default function AdminMailPage() {
             </div>
           </div>
         </section>
+
+        <PublicSharingPanel selected={selected} campaigns={campaigns} branding={{
+          address: setup.address, phone: setup.phone, websiteUrl: setup.websiteUrl,
+          reservationUrl: setup.reservationUrl, heroImage: setup.heroImage, gallery: setup.gallery,
+        }} />
 
         <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_440px]">
           <section className="card min-w-0 p-4 sm:p-5">
